@@ -19,6 +19,9 @@ frontend/vite.config.d.ts
 backend/.env
 frontend/.env
 
+# Runtime data
+backend/data/audit.log
+
 # IDE files
 .idea/
 
