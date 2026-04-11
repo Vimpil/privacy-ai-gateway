@@ -112,6 +112,12 @@ function pushUnique(target: string[], value: string, seen: Set<string>) {
   }
 }
 
+function capitalizeFirstLetter(input: string): string {
+  const index = input.search(/[A-Za-z]/);
+  if (index < 0) return input;
+  return `${input.slice(0, index)}${input[index].toUpperCase()}${input.slice(index + 1)}`;
+}
+
 export function buildWaitingPhrases(topic?: string | null, publicTitle?: string | null): string[] {
   const phrases: string[] = [];
   const seen = new Set<string>();
@@ -133,11 +139,11 @@ export function buildWaitingPhrases(topic?: string | null, publicTitle?: string 
       .replace("{action}", action)
       .replace("{ending}", ending);
 
-    pushUnique(phrases, candidate, seen);
+    pushUnique(phrases, capitalizeFirstLetter(candidate), seen);
   }
 
   for (const special of SPECIALS) {
-    pushUnique(phrases, special, seen);
+    pushUnique(phrases, capitalizeFirstLetter(special), seen);
   }
 
   const focus = publicTitle ?? topic;
@@ -145,7 +151,11 @@ export function buildWaitingPhrases(topic?: string | null, publicTitle?: string 
     for (const agent of AGENTS) {
       for (const action of TOPIC_ACTIONS) {
         for (const ending of ENDINGS.slice(0, 8)) {
-          pushUnique(phrases, `${agent} are ${action} ${focus}. ${ending}`, seen);
+          pushUnique(
+            phrases,
+            capitalizeFirstLetter(`${agent} are ${action} ${focus}. ${ending}`),
+            seen,
+          );
         }
       }
     }
@@ -171,6 +181,7 @@ export function pickRandomPhraseIndex(
   }
   return next;
 }
+
 
 
 
