@@ -8,6 +8,7 @@ from app.services.oracle_chat_service import ChatProcessingError, OracleChatServ
 
 @dataclass
 class _FakeAIResult:
+    model: str
     response: str
 
 
@@ -18,6 +19,7 @@ async def test_process_chat_success(monkeypatch: pytest.MonkeyPatch) -> None:
         ollama_model="llama3.2:3b",
         gateway_shared_key_b64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         audit_log_path="data/audit.log",
+        processing_log_path="data/processing.log",
     )
 
     monkeypatch.setattr(
@@ -26,7 +28,7 @@ async def test_process_chat_success(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     async def fake_generate_response(_: str) -> _FakeAIResult:
-        return _FakeAIResult(response="Proceed with clarity.")
+        return _FakeAIResult(model="llama3.2:3b", response="Proceed with clarity.")
 
     monkeypatch.setattr("app.services.oracle_chat_service.generate_response", fake_generate_response)
     monkeypatch.setattr(
@@ -50,6 +52,15 @@ async def test_process_chat_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("app.services.oracle_chat_service.AuditService", FakeAuditService)
 
+    class FakeStageLogService:
+        def __init__(self, _: str):
+            pass
+
+        def append(self, **_kwargs):
+            return None
+
+    monkeypatch.setattr("app.services.oracle_chat_service.StageLogService", FakeStageLogService)
+
     result = await OracleChatService(settings=settings).process_chat(
         nonce="in-nonce",
         ciphertext="in-cipher",
@@ -67,12 +78,22 @@ async def test_process_chat_wraps_errors(monkeypatch: pytest.MonkeyPatch) -> Non
         ollama_model="llama3.2:3b",
         gateway_shared_key_b64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         audit_log_path="data/audit.log",
+        processing_log_path="data/processing.log",
     )
 
     def boom(*_args, **_kwargs):
         raise ValueError("decrypt failed")
 
     monkeypatch.setattr("app.services.oracle_chat_service.CryptoService.decrypt_message", boom)
+
+    class FakeStageLogService:
+        def __init__(self, _: str):
+            pass
+
+        def append(self, **_kwargs):
+            return None
+
+    monkeypatch.setattr("app.services.oracle_chat_service.StageLogService", FakeStageLogService)
 
     with pytest.raises(ChatProcessingError):
         await OracleChatService(settings=settings).process_chat(

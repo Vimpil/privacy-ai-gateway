@@ -302,6 +302,12 @@ button.btn-primary:disabled {
   letter-spacing: 0.05em;
 }
 
+.audit-event-badge--error {
+  color: var(--error);
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
 .audit-hash {
   font-family: inherit;
   color: var(--success);

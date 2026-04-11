@@ -8,3 +8,13 @@ class AuditEntry(BaseModel):
     hash: str
     previous_hash: str
 
+
+class ProcessingStageEntry(BaseModel):
+    index: int
+    timestamp: str
+    request_id: str
+    stage: str
+    status: str
+    message: str
+
+

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchAuditLogs } from "../services/client";
-import type { AuditLogEntry } from "../types/audit";
+import { fetchAuditLogs, fetchProcessingStageLogs } from "../services/client";
+import type { AuditLogEntry, ProcessingStageEntry } from "../types/audit";
 
 function truncate(value: string, length = 16): string {
   return value.length > length ? `${value.slice(0, length)}…` : value;
@@ -8,6 +8,7 @@ function truncate(value: string, length = 16): string {
 
 export function AuditPage() {
   const [logs, setLogs]       = useState<AuditLogEntry[]>([]);
+  const [stages, setStages]   = useState<ProcessingStageEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
@@ -15,8 +16,12 @@ export function AuditPage() {
     try {
       setLoading(true);
       setError("");
-      const data = await fetchAuditLogs();
+      const [data, stageData] = await Promise.all([
+        fetchAuditLogs(),
+        fetchProcessingStageLogs(),
+      ]);
       setLogs(data.slice().reverse()); // newest first
+      setStages(stageData.slice().reverse()); // newest first
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -85,6 +90,57 @@ export function AuditPage() {
                         {entry.previous_hash === "GENESIS" ? "GENESIS" : truncate(entry.previous_hash, 12)}
                       </span>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card audit-card">
+        <div className="audit-toolbar">
+          <p className="card__label">
+            Processing Stage Logs ({stages.length})
+          </p>
+        </div>
+
+        {!error && stages.length === 0 && !loading && (
+          <p className="audit-empty">No processing logs yet. Send a prompt to generate stage logs.</p>
+        )}
+
+        {stages.length > 0 && (
+          <div className="audit-table-wrap">
+            <table className="audit-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Timestamp</th>
+                  <th>Request</th>
+                  <th>Stage</th>
+                  <th>Status</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stages.map((entry) => (
+                  <tr key={`${entry.index}-${entry.timestamp}`}>
+                    <td className="audit-index">{entry.index}</td>
+                    <td className="audit-ts">{new Date(entry.timestamp).toLocaleString()}</td>
+                    <td>
+                      <span className="audit-hash" title={entry.request_id}>
+                        {truncate(entry.request_id, 12)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="audit-event-badge">{entry.stage}</span>
+                    </td>
+                    <td>
+                      <span className={`audit-event-badge ${entry.status === "error" ? "audit-event-badge--error" : ""}`}>
+                        {entry.status}
+                      </span>
+                    </td>
+                    <td>{entry.message}</td>
                   </tr>
                 ))}
               </tbody>

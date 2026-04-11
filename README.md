@@ -4,7 +4,7 @@
 
 Cipher Oracle is a production-grade system that enables users to interact with large language models while maintaining cryptographic privacy guarantees. Every query and response is encrypted client-side using AES-GCM, passed through a secure gateway, processed by a local Ollama instance, and logged immutably in a SHA-256 hash chain. The system eliminates the need for users to trust cloud AI providers with raw prompts or outputs — all processing happens locally or within a controlled, encrypted boundary.
 
-**Status:** MVP complete with 17 passing tests. Ready for deployment and federation.
+**Status:** MVP complete with 18 passing tests. Ready for deployment and federation.
 
 ---
 
@@ -192,7 +192,7 @@ This opens both backend and frontend in parallel, and automatically opens your b
    ```
    - Edit `backend/.env`: Set `GATEWAY_SHARED_KEY_BASE64` (base64-encoded 32-byte AES key)
    - Edit `frontend/.env`: Set `VITE_SHARED_KEY_BASE64` (same key)
-   - Optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `AUDIT_LOG_PATH`
+   - Optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `AUDIT_LOG_PATH`, `PROCESSING_LOG_PATH`
 
 3. **Backend (Terminal 1):**
    ```powershell
@@ -270,7 +270,7 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   │   │   └── oracle_service.py       # Oracle transformation
 │   │   ├── middleware.py       # Error handling, rate limiting
 │   │   └── main.py             # FastAPI app, middleware stack
-│   ├── tests/                  # pytest test suite (17 passing)
+│   ├── tests/                  # pytest test suite (18 passing)
 │   ├── data/                   # audit.log location
 │   └── requirements.txt        # Python dependencies
 │
@@ -360,6 +360,30 @@ Retrieve full hash chain in insertion order.
 ]
 ```
 
+### Processing Stage Logs
+**GET `/api/v1/audit/stages`**
+
+Read step-by-step pipeline events generated during each request:
+- decrypt
+- ai_inference
+- oracle_transform
+- encrypt
+- audit
+
+**Response (200 OK):**
+```json
+[
+  {
+    "index": 1,
+    "timestamp": "2026-04-11T12:00:00+00:00",
+    "request_id": "4dbfd2c3-...",
+    "stage": "decrypt",
+    "status": "ok",
+    "message": "Payload decrypted successfully"
+  }
+]
+```
+
 ### Health Check
 **GET `/health`**
 
@@ -374,7 +398,7 @@ Quick liveness probe.
 
 ## Testing & Validation
 
-**Backend Test Suite (17 passing):**
+**Backend Test Suite (18 passing):**
 ```
 pytest -q
 ```

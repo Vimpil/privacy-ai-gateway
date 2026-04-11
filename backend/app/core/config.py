@@ -9,6 +9,7 @@ class Settings:
     ollama_model: str
     gateway_shared_key_b64: str
     audit_log_path: str
+    processing_log_path: str
 
 
 @lru_cache(maxsize=1)
@@ -21,5 +22,6 @@ def get_settings() -> Settings:
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         ),
         audit_log_path=os.getenv("AUDIT_LOG_PATH", "data/audit.log"),
+        processing_log_path=os.getenv("PROCESSING_LOG_PATH", "data/processing.log"),
     )
 

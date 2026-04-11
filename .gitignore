@@ -21,6 +21,7 @@ frontend/.env
 
 # Runtime data
 backend/data/audit.log
+backend/data/processing.log
 
 # IDE files
 .idea/
