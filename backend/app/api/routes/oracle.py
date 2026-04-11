@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.ai.ollama_client import OllamaClient
+from app.ai.service import generate_response
 from app.audit.audit_service import AuditService
 from app.crypto.crypto_service import CryptoService
 from app.core.config import get_settings
@@ -19,11 +19,8 @@ async def oracle_chat(request: OracleRequest) -> OracleResponse:
             request.encrypted.nonce,
             request.encrypted.ciphertext,
         )
-        ai_response = await OllamaClient(
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_model,
-        ).generate(plaintext)
-        transformed = OracleService.transform(message=plaintext, ai_response=ai_response)
+        ai_result = await generate_response(plaintext)
+        transformed = OracleService.transform(message=plaintext, ai_response=ai_result.response)
         response_nonce, response_ciphertext = CryptoService.encrypt_message(
             settings.gateway_shared_key_b64,
             transformed,
