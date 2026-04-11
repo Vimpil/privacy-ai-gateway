@@ -61,6 +61,21 @@ npx vite --host=127.0.0.1 --port=5173
 
 See `docs/architecture.md` for the flow and module responsibilities.
 
+## Backend AES-GCM Utility Example
+
+`backend/app/crypto/crypto_service.py` exposes simple helpers:
+
+```python
+from app.crypto.crypto_service import decrypt, encrypt
+
+payload = encrypt("hello oracle")
+plaintext = decrypt(payload)
+
+assert plaintext == "hello oracle"
+```
+
+The utility uses `GATEWAY_SHARED_KEY_BASE64` and expects a key that decodes to 16, 24, or 32 bytes.
+
 ## Troubleshooting (Windows)
 
 - PowerShell blocks `Activate.ps1`: run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in that terminal, then retry activation.
