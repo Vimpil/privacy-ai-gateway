@@ -3,22 +3,31 @@ type MessageFormProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   loading: boolean;
+  step?: string;
 };
 
-export function MessageForm({ value, onChange, onSubmit, loading }: MessageFormProps) {
+export function MessageForm({ value, onChange, onSubmit, loading, step }: MessageFormProps) {
   return (
     <div className="card">
-      <h2>Cipher Oracle</h2>
+      <p className="card__label">Your Prompt</p>
       <textarea
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        rows={6}
+        onChange={(e) => onChange(e.target.value)}
         placeholder="Ask the oracle..."
+        disabled={loading}
       />
-      <button onClick={onSubmit} disabled={loading || value.trim().length === 0}>
-        {loading ? "Consulting..." : "Consult Oracle"}
-      </button>
+      <div className="card__actions">
+        <button
+          className="btn-primary"
+          onClick={onSubmit}
+          disabled={loading || value.trim().length === 0}
+        >
+          🔒 {loading ? "Processing..." : "Encrypt & Send"}
+        </button>
+        <span className={`step-indicator${step ? " visible" : ""}`}>
+          {step}
+        </span>
+      </div>
     </div>
   );
 }
-

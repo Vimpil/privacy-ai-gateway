@@ -3,7 +3,7 @@ import type { OracleRequest, OracleResponse } from "../types/oracle";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export async function requestOracle(payload: OracleRequest): Promise<OracleResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/oracle/chat`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

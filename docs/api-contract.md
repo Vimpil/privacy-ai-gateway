@@ -1,6 +1,8 @@
 # API Contract (Initial)
 
-## `POST /api/v1/oracle/chat`
+## `POST /api/v1/chat`
+
+Legacy alias (still supported): `POST /api/v1/oracle/chat`
 
 ### Request
 
