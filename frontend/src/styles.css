@@ -199,3 +199,118 @@ button.btn-primary:disabled {
   border-radius: 0.4rem;
   padding: 0.5rem 0.75rem;
 }
+
+/* ── Tab nav ── */
+.tab-nav {
+  display: flex;
+  gap: 0.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem;
+  width: 100%;
+  max-width: 680px;
+}
+
+.tab-nav__item {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+}
+.tab-nav__item:hover { color: var(--text); background: var(--surface-2); }
+.tab-nav__item--active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* ── Audit page ── */
+.audit-card { max-width: 860px; }
+
+.audit-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.btn-sm {
+  font-size: 0.78rem !important;
+  padding: 0.4rem 0.85rem !important;
+}
+
+.audit-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.88rem;
+  padding: 1rem 0;
+}
+
+.audit-table-wrap {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+}
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.audit-table th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-table td {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.audit-table tr:last-child td { border-bottom: none; }
+.audit-table tr:hover td { background: var(--surface-2); }
+
+.audit-index { color: var(--text-muted); width: 2.5rem; }
+
+.audit-ts { color: var(--text-muted); white-space: nowrap; }
+
+.audit-event-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  letter-spacing: 0.05em;
+}
+
+.audit-hash {
+  font-family: inherit;
+  color: var(--success);
+  letter-spacing: 0.04em;
+  cursor: default;
+}
+.audit-hash--genesis {
+  color: var(--cyan);
+  font-style: italic;
+}
+
+

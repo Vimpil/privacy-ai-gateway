@@ -26,6 +26,17 @@ class AuditService:
             file.write(json.dumps(record) + "\n")
         return record_hash
 
+    def read_all_logs(self) -> list[dict[str, object]]:
+        """Return all audit records in insertion order."""
+        if not self.log_path.exists():
+            return []
+        records: list[dict[str, object]] = []
+        with self.log_path.open("r", encoding="utf-8") as file:
+            for line in file:
+                if line.strip():
+                    records.append(json.loads(line))
+        return records
+
     def _read_previous_hash(self) -> str:
         if not self.log_path.exists():
             return "GENESIS"
