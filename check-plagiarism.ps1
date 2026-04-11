@@ -77,27 +77,47 @@ if ($ValidateOnly) {
 
 Write-Step "Running jscpd clone detection"
 if ($jscpdCmd) {
-  & $jscpdCmd.Source "$root" --reporters console,json --output "$jscpdOut"
-  Write-Ok "jscpd report generated"
+  # Use default reporters for portability across jscpd versions.
+  & $jscpdCmd.Source "$root" --output "$jscpdOut"
+  if ($LASTEXITCODE -eq 0) {
+    Write-Ok "jscpd scan completed"
+  } else {
+    Write-Warn "jscpd exited with code $LASTEXITCODE"
+  }
 } else {
   Write-Warn "Skipping jscpd (not installed). Install: npm install -g jscpd"
 }
 
 Write-Step "Running copydetect (Python backend)"
 if ($pythonCmd) {
-  # Ensure copydetect is importable in current environment.
-  & $pythonCmd.Source -c "import copydetect" 2>$null
-  if ($LASTEXITCODE -ne 0) {
+  # Check install via pip metadata to avoid traceback noise.
+  $oldErr = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  & $pythonCmd.Source -m pip show copydetect *> $null
+  $copydetectInstalled = ($LASTEXITCODE -eq 0)
+  $ErrorActionPreference = $oldErr
+
+  if (-not $copydetectInstalled) {
     Write-Warn "copydetect not installed. Install with: python -m pip install copydetect"
   } else {
     $backendPath = Join-Path $root "backend"
     $copydetectReport = Join-Path $copydetectOut "copydetect_report.html"
+
+    $ErrorActionPreference = "Continue"
     & $pythonCmd.Source -m copydetect "$backendPath" --out-file "$copydetectReport"
-    Write-Ok "copydetect report generated"
+    $copydetectExit = $LASTEXITCODE
+    $ErrorActionPreference = $oldErr
+
+    if ($copydetectExit -eq 0) {
+      Write-Ok "copydetect report generated"
+    } else {
+      Write-Warn "copydetect exited with code $copydetectExit"
+    }
   }
 } else {
   Write-Warn "Skipping copydetect (python not found)."
 }
 
 Write-Info "Done. Open reports under: $reportRoot"
+
 
