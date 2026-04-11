@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageForm } from "../components/MessageForm";
 import { decryptText, encryptText } from "../crypto/aesGcm";
 import { fetchProcessingStageLogsForRequest, requestOracle } from "../services/client";
+import type { PublicApiContext } from "../types/oracle";
 
 const SHARED_KEY =
   import.meta.env.VITE_SHARED_KEY_BASE64 ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
@@ -12,7 +13,7 @@ const STEPS = {
   decrypt: "🔓 Decrypting response...",
 };
 
-const WAITING_PHRASES = [
+const BASE_WAITING_PHRASES = [
   "Aligning crystal matrices with local llama cortex...",
   "Consulting the stars, satellites, and one very sleepy GPU...",
   "Oracle pigeons are delivering your prompt to the model...",
@@ -21,6 +22,36 @@ const WAITING_PHRASES = [
   "Sims committee is routing your thought bubble to llama...",
   "Decoding tea leaves and token probabilities...",
 ];
+
+function topicFromPrompt(prompt: string): string | null {
+  const cleaned = prompt.trim().replace(/[?.!]+$/, "");
+  if (!cleaned) return null;
+
+  const prefixes = ["what is ", "who is ", "what are ", "tell me about ", "define ", "explain "];
+  const lowered = cleaned.toLowerCase();
+  for (const prefix of prefixes) {
+    if (lowered.startsWith(prefix)) {
+      return cleaned.slice(prefix.length).trim() || null;
+    }
+  }
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  return words.length <= 5 ? cleaned : null;
+}
+
+function waitingPhrases(topic: string | null, publicContext: PublicApiContext | null): string[] {
+  const focus = publicContext?.title ?? topic;
+  if (!focus) return BASE_WAITING_PHRASES;
+
+  return [
+    `Dispatching Civ historians to the Wikipedia archives for ${focus}...`,
+    `The Sims mailroom is stamping paperwork marked '${focus}'...`,
+    `Oracle interns are highlighting the ${focus} scrolls from Wikipedia...`,
+    `A llama librarian is skimming public records about ${focus}...`,
+    `Cross-referencing ${focus} with public knowledge and mystical vibes...`,
+    ...BASE_WAITING_PHRASES,
+  ];
+}
 
 export function OraclePage() {
   const [message, setMessage]     = useState("");
@@ -32,9 +63,12 @@ export function OraclePage() {
   const [stepStatus, setStepStatus] = useState<"ok" | "warn" | "error" | "running">("running");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phraseIndex, setPhraseIndex] = useState(0);
+  const [publicContext, setPublicContext] = useState<PublicApiContext | null>(null);
+  const [loaderSourceLabel, setLoaderSourceLabel] = useState<string | undefined>(undefined);
   const pollRef = useRef<number | null>(null);
   const tickRef = useRef<number | null>(null);
   const phraseRef = useRef<number | null>(null);
+  const phrasePoolRef = useRef<string[]>(BASE_WAITING_PHRASES);
 
   const stopProgressPolling = () => {
     if (pollRef.current !== null) {
@@ -66,6 +100,15 @@ export function OraclePage() {
         } else {
           setStepStatus("running");
         }
+
+        if (latest.stage === "public_api_fetch" && latest.status === "ok") {
+          const match = latest.message.match(/for\s+(.+)$/i);
+          const title = match?.[1]?.trim();
+          if (title) {
+            setLoaderSourceLabel(`wikipedia: ${title}`);
+            phrasePoolRef.current = waitingPhrases(title, null);
+          }
+        }
       } catch {
         // Keep UI responsive even if polling fails transiently.
       }
@@ -76,7 +119,7 @@ export function OraclePage() {
     }, 1000);
 
     phraseRef.current = window.setInterval(() => {
-      setPhraseIndex((i) => (i + 1) % WAITING_PHRASES.length);
+      setPhraseIndex((i) => (i + 1) % phrasePoolRef.current.length);
     }, 2600);
   };
 
@@ -93,9 +136,12 @@ export function OraclePage() {
       setError("");
       setResult("");
       setAuditHash("");
+      setPublicContext(null);
+      setLoaderSourceLabel(undefined);
       setElapsedSeconds(0);
       setStepStatus("running");
-      setPhraseIndex(Math.floor(Math.random() * WAITING_PHRASES.length));
+      phrasePoolRef.current = waitingPhrases(topicFromPrompt(message), null);
+      setPhraseIndex(Math.floor(Math.random() * phrasePoolRef.current.length));
 
       setStep(STEPS.encrypt);
       const encrypted = await encryptText(SHARED_KEY, message);
@@ -103,6 +149,11 @@ export function OraclePage() {
       setStep(STEPS.send);
       startProgressPolling(requestId);
       const response = await requestOracle({ encrypted, request_id: requestId });
+      if (response.public_api) {
+        setPublicContext(response.public_api);
+        setLoaderSourceLabel(`${response.public_api.provider}: ${response.public_api.title}`);
+        phrasePoolRef.current = waitingPhrases(topicFromPrompt(message), response.public_api);
+      }
 
       setStep(STEPS.decrypt);
       const decrypted = await decryptText(
@@ -141,7 +192,8 @@ export function OraclePage() {
         step={step}
         stepStatus={stepStatus}
         elapsedSeconds={elapsedSeconds}
-        progressPhrase={WAITING_PHRASES[phraseIndex]}
+        progressPhrase={phrasePoolRef.current[phraseIndex]}
+        publicSourceLabel={loaderSourceLabel}
       />
 
       <div className="card">
@@ -154,6 +206,17 @@ export function OraclePage() {
           <div className="audit-row">
             <span className="audit-row__label">Audit</span>
             <span className="audit-row__hash" title={auditHash}>{auditHash}</span>
+          </div>
+        )}
+
+        {publicContext && (
+          <div className="public-api-card">
+            <p className="card__label">Public API Context</p>
+            <p className="public-api-card__title">Wikipedia · {publicContext.title}</p>
+            <p className="public-api-card__summary">{publicContext.summary}</p>
+            <a className="public-api-card__link" href={publicContext.url} target="_blank" rel="noreferrer">
+              Open source article
+            </a>
           </div>
         )}
 

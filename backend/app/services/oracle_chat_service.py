@@ -9,6 +9,7 @@ from app.audit.stage_log_service import StageLogService
 from app.core.config import Settings, get_settings
 from app.crypto.crypto_service import CryptoService
 from app.services.oracle_service import OracleService
+from app.services.public_api_service import WikipediaContext, WikipediaService
 
 
 class ChatProcessingError(Exception):
@@ -20,12 +21,14 @@ class ChatResult:
     nonce: str
     ciphertext: str
     audit_hash: str
+    public_api: WikipediaContext | None = None
 
 
 class OracleChatService:
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
         self.stage_logger = StageLogService(self.settings.processing_log_path)
+        self.wikipedia = WikipediaService(self.settings)
 
     async def process_chat(
         self,
@@ -36,6 +39,7 @@ class OracleChatService:
     ) -> ChatResult:
         request_id = request_id or str(uuid4())
         try:
+            public_context: WikipediaContext | None = None
             self.stage_logger.append(
                 request_id=request_id,
                 stage="decrypt",
@@ -54,13 +58,45 @@ class OracleChatService:
                 message="Payload decrypted successfully",
             )
 
+            prompt_for_ai = plaintext
+            if self.settings.wikipedia_enabled:
+                topic = self.wikipedia.extract_topic(plaintext)
+                if topic:
+                    self.stage_logger.append(
+                        request_id=request_id,
+                        stage="public_api_fetch",
+                        status="start",
+                        message=f"Consulting Wikipedia for '{topic}'",
+                    )
+                    public_context = await self.wikipedia.fetch_summary(topic)
+                    if public_context:
+                        prompt_for_ai = (
+                            f"User prompt: {plaintext}\n\n"
+                            f"Public reference from Wikipedia ({public_context.title}):\n"
+                            f"{public_context.summary}\n\n"
+                            "Use this public context when helpful, but answer naturally."
+                        )
+                        self.stage_logger.append(
+                            request_id=request_id,
+                            stage="public_api_fetch",
+                            status="ok",
+                            message=f"Wikipedia context loaded for {public_context.title}",
+                        )
+                    else:
+                        self.stage_logger.append(
+                            request_id=request_id,
+                            stage="public_api_fetch",
+                            status="warn",
+                            message=f"Wikipedia had no usable summary for '{topic}'",
+                        )
+
             self.stage_logger.append(
                 request_id=request_id,
                 stage="ai_inference",
                 status="start",
                 message="Sending prompt to local Ollama",
             )
-            ai_result = await generate_response(plaintext)
+            ai_result = await generate_response(prompt_for_ai)
             ai_status = "ok"
             ai_message = f"Model responded: {ai_result.model}"
             if ai_result.model.startswith("mock"):
@@ -128,6 +164,7 @@ class OracleChatService:
                 nonce=response_nonce,
                 ciphertext=response_ciphertext,
                 audit_hash=audit_hash,
+                public_api=public_context,
             )
         except Exception as exc:  # Keep route thin: normalize failures here.
             self.stage_logger.append(

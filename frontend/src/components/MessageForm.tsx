@@ -7,6 +7,7 @@ type MessageFormProps = {
   progressPhrase?: string;
   elapsedSeconds?: number;
   stepStatus?: "ok" | "warn" | "error" | "running";
+  publicSourceLabel?: string;
 };
 
 export function MessageForm({
@@ -18,6 +19,7 @@ export function MessageForm({
   progressPhrase,
   elapsedSeconds,
   stepStatus = "running",
+  publicSourceLabel,
 }: MessageFormProps) {
   return (
     <div className="card">
@@ -43,6 +45,7 @@ export function MessageForm({
 
       {loading && (
         <div className="progress-panel">
+          {publicSourceLabel && <p className="progress-source">Public source: {publicSourceLabel}</p>}
           <p className="progress-phrase">{progressPhrase}</p>
           <div className="progress-meta">
             <span className={`progress-stage progress-stage--${stepStatus}`}>{stepStatus}</span>

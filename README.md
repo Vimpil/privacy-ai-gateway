@@ -4,7 +4,7 @@
 
 Cipher Oracle is a production-grade system that enables users to interact with large language models while maintaining cryptographic privacy guarantees. Every query and response is encrypted client-side using AES-GCM, passed through a secure gateway, processed by a local Ollama instance, and logged immutably in a SHA-256 hash chain. The system eliminates the need for users to trust cloud AI providers with raw prompts or outputs — all processing happens locally or within a controlled, encrypted boundary.
 
-**Status:** MVP complete with 19 passing tests. Ready for deployment and federation.
+**Status:** MVP complete with 23 passing tests. Ready for deployment and federation.
 
 ---
 
@@ -93,6 +93,12 @@ Frontend receives encrypted response:
 - **Fallback response:** Graceful degradation if Ollama is unavailable
 - **Configurable:** Model and base URL via environment
 
+### 🌐 **Public API Enrichment (Wikipedia)**
+- **Wikipedia REST API:** Fetches public summaries for clear factual topics
+- **Best-effort enrichment:** Public context is injected into the Ollama prompt when available
+- **Loader-aware UX:** Progress panel can show Wikipedia as the current public source while processing
+- **MLH challenge fit:** The project now clearly uses a publicly available API in the request pipeline
+
 ### 📜 **Oracle Transformation Layer**
 - **Deterministic with variation:** Fixed list of mystical lead-ins, randomly selected per response
 - **Semantic preservation:** Lightweight transformation (wrapping, not editing)
@@ -154,6 +160,9 @@ OLLAMA_TIMEOUT_SEC=120
 OLLAMA_RETRIES=1
 OLLAMA_RETRY_BACKOFF_SEC=2
 OLLAMA_FALLBACK_ENABLED=true
+WIKIPEDIA_BASE_URL=https://en.wikipedia.org/api/rest_v1
+WIKIPEDIA_TIMEOUT_SEC=8
+WIKIPEDIA_ENABLED=true
 ```
 
 If Ollama is not installed or unavailable, Cipher Oracle still runs and returns a safe fallback response.
@@ -276,11 +285,12 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   │   │   ├── audit.py        # AuditEntry
 │   │   │   └── response.py     # ApiResponse<T>
 │   │   ├── services/
+│   │   │   ├── public_api_service.py    # Wikipedia public API enrichment
 │   │   │   ├── oracle_chat_service.py  # Orchestration (decrypt→AI→transform→encrypt→audit)
 │   │   │   └── oracle_service.py       # Oracle transformation
 │   │   ├── middleware.py       # Error handling, rate limiting
 │   │   └── main.py             # FastAPI app, middleware stack
-│   ├── tests/                  # pytest test suite (18 passing)
+│   ├── tests/                  # pytest test suite (23 passing)
 │   ├── data/                   # audit.log location
 │   └── requirements.txt        # Python dependencies
 │
@@ -340,7 +350,13 @@ Encrypted conversation with the oracle.
     "nonce": "base64-iv",
     "ciphertext": "base64-response"
   },
-  "audit_hash": "sha256-hex-digest"
+  "audit_hash": "sha256-hex-digest",
+  "public_api": {
+    "provider": "wikipedia",
+    "title": "OpenCLAW",
+    "summary": "OpenCLAW is an open-source game engine and project.",
+    "url": "https://en.wikipedia.org/wiki/OpenCLAW"
+  }
 }
 ```
 
@@ -376,6 +392,7 @@ Retrieve full hash chain in insertion order.
 
 Read step-by-step pipeline events generated during each request:
 - decrypt
+- public_api_fetch
 - ai_inference
 - oracle_transform
 - encrypt
@@ -413,7 +430,7 @@ Quick liveness probe.
 
 ## Testing & Validation
 
-**Backend Test Suite (19 passing):**
+**Backend Test Suite (23 passing):**
 ```
 pytest -q
 ```

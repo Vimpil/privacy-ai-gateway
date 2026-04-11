@@ -11,6 +11,9 @@ class Settings:
     ollama_retries: int
     ollama_retry_backoff_sec: float
     ollama_fallback_enabled: bool
+    wikipedia_base_url: str
+    wikipedia_timeout_sec: float
+    wikipedia_enabled: bool
     gateway_shared_key_b64: str
     audit_log_path: str
     processing_log_path: str
@@ -25,6 +28,9 @@ def get_settings() -> Settings:
         ollama_retries=int(os.getenv("OLLAMA_RETRIES", "1")),
         ollama_retry_backoff_sec=float(os.getenv("OLLAMA_RETRY_BACKOFF_SEC", "2")),
         ollama_fallback_enabled=os.getenv("OLLAMA_FALLBACK_ENABLED", "true").lower() == "true",
+        wikipedia_base_url=os.getenv("WIKIPEDIA_BASE_URL", "https://en.wikipedia.org/api/rest_v1"),
+        wikipedia_timeout_sec=float(os.getenv("WIKIPEDIA_TIMEOUT_SEC", "8")),
+        wikipedia_enabled=os.getenv("WIKIPEDIA_ENABLED", "true").lower() == "true",
         gateway_shared_key_b64=os.getenv(
             "GATEWAY_SHARED_KEY_BASE64",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
