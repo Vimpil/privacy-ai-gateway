@@ -8,6 +8,7 @@ class EncryptedPayload(BaseModel):
 
 class OracleRequest(BaseModel):
     encrypted: EncryptedPayload
+    request_id: str | None = None
 
 
 class OracleResponse(BaseModel):

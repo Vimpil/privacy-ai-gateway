@@ -4,7 +4,7 @@
 
 Cipher Oracle is a production-grade system that enables users to interact with large language models while maintaining cryptographic privacy guarantees. Every query and response is encrypted client-side using AES-GCM, passed through a secure gateway, processed by a local Ollama instance, and logged immutably in a SHA-256 hash chain. The system eliminates the need for users to trust cloud AI providers with raw prompts or outputs — all processing happens locally or within a controlled, encrypted boundary.
 
-**Status:** MVP complete with 18 passing tests. Ready for deployment and federation.
+**Status:** MVP complete with 19 passing tests. Ready for deployment and federation.
 
 ---
 
@@ -325,6 +325,7 @@ Encrypted conversation with the oracle.
 **Request:**
 ```json
 {
+  "request_id": "optional-client-generated-id",
   "encrypted": {
     "nonce": "base64-encoded-12-byte-iv",
     "ciphertext": "base64-encoded-aes-gcm-ciphertext"
@@ -380,6 +381,10 @@ Read step-by-step pipeline events generated during each request:
 - encrypt
 - audit
 
+Query params:
+- `request_id` (optional): filter to a single request
+- `limit` (optional): cap number of returned records (default 200)
+
 **Response (200 OK):**
 ```json
 [
@@ -408,7 +413,7 @@ Quick liveness probe.
 
 ## Testing & Validation
 
-**Backend Test Suite (18 passing):**
+**Backend Test Suite (19 passing):**
 ```
 pytest -q
 ```

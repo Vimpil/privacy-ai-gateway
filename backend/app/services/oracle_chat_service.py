@@ -27,8 +27,14 @@ class OracleChatService:
         self.settings = settings or get_settings()
         self.stage_logger = StageLogService(self.settings.processing_log_path)
 
-    async def process_chat(self, *, nonce: str, ciphertext: str) -> ChatResult:
-        request_id = str(uuid4())
+    async def process_chat(
+        self,
+        *,
+        nonce: str,
+        ciphertext: str,
+        request_id: str | None = None,
+    ) -> ChatResult:
+        request_id = request_id or str(uuid4())
         try:
             self.stage_logger.append(
                 request_id=request_id,

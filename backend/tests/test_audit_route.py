@@ -65,3 +65,48 @@ def test_processing_stage_logs_returns_entries(tmp_path, monkeypatch) -> None:
     assert data[0]["stage"] == "decrypt"
     assert data[0]["status"] == "ok"
 
+
+def test_processing_stage_logs_support_request_filter_and_limit(tmp_path, monkeypatch) -> None:
+    import json
+
+    stage_file = tmp_path / "processing.log"
+    stage_file.write_text(
+        "\n".join(
+            [
+                json.dumps({
+                    "timestamp": "2026-04-11T12:00:00+00:00",
+                    "request_id": "req-a",
+                    "stage": "decrypt",
+                    "status": "ok",
+                    "message": "A1",
+                }),
+                json.dumps({
+                    "timestamp": "2026-04-11T12:00:01+00:00",
+                    "request_id": "req-b",
+                    "stage": "decrypt",
+                    "status": "ok",
+                    "message": "B1",
+                }),
+                json.dumps({
+                    "timestamp": "2026-04-11T12:00:02+00:00",
+                    "request_id": "req-a",
+                    "stage": "ai_inference",
+                    "status": "ok",
+                    "message": "A2",
+                }),
+            ]
+        )
+        + "\n"
+    )
+
+    monkeypatch.setenv("PROCESSING_LOG_PATH", str(stage_file))
+    get_settings.cache_clear()
+
+    response = client.get("/api/v1/audit/stages", params={"request_id": "req-a", "limit": 1})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["request_id"] == "req-a"
+    assert data[0]["message"] == "A2"
+
+

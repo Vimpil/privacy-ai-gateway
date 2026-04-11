@@ -25,3 +25,13 @@ export async function fetchProcessingStageLogs(): Promise<ProcessingStageEntry[]
   return (await response.json()) as ProcessingStageEntry[];
 }
 
+export async function fetchProcessingStageLogsForRequest(
+  requestId: string,
+  limit = 100,
+): Promise<ProcessingStageEntry[]> {
+  const query = new URLSearchParams({ request_id: requestId, limit: String(limit) });
+  const response = await fetch(`${API_BASE_URL}/api/v1/audit/stages?${query.toString()}`);
+  if (!response.ok) throw new Error("Failed to fetch processing logs");
+  return (await response.json()) as ProcessingStageEntry[];
+}
+

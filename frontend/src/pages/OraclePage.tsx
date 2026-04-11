@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageForm } from "../components/MessageForm";
 import { decryptText, encryptText } from "../crypto/aesGcm";
-import { requestOracle } from "../services/client";
+import { fetchProcessingStageLogsForRequest, requestOracle } from "../services/client";
 
 const SHARED_KEY =
   import.meta.env.VITE_SHARED_KEY_BASE64 ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
@@ -19,6 +19,32 @@ export function OraclePage() {
   const [error, setError]         = useState("");
   const [loading, setLoading]     = useState(false);
   const [step, setStep]           = useState("");
+  const pollRef = useRef<number | null>(null);
+
+  const stopProgressPolling = () => {
+    if (pollRef.current !== null) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const startProgressPolling = (requestId: string) => {
+    stopProgressPolling();
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const logs = await fetchProcessingStageLogsForRequest(requestId, 50);
+        if (logs.length === 0) return;
+
+        const latest = logs[logs.length - 1];
+        const statusIcon = latest.status === "warn" ? "[WARN]" : latest.status === "error" ? "[ERR]" : "[OK]";
+        setStep(`${statusIcon} ${latest.stage}: ${latest.message}`);
+      } catch {
+        // Keep UI responsive even if polling fails transiently.
+      }
+    }, 800);
+  };
+
+  useEffect(() => stopProgressPolling, []);
 
   const handleSubmit = async () => {
     if (!SHARED_KEY) {
@@ -26,6 +52,7 @@ export function OraclePage() {
       return;
     }
     try {
+      const requestId = crypto.randomUUID();
       setLoading(true);
       setError("");
       setResult("");
@@ -35,7 +62,8 @@ export function OraclePage() {
       const encrypted = await encryptText(SHARED_KEY, message);
 
       setStep(STEPS.send);
-      const response = await requestOracle({ encrypted });
+      startProgressPolling(requestId);
+      const response = await requestOracle({ encrypted, request_id: requestId });
 
       setStep(STEPS.decrypt);
       const decrypted = await decryptText(
@@ -49,6 +77,7 @@ export function OraclePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
+      stopProgressPolling();
       setLoading(false);
       setStep("");
     }

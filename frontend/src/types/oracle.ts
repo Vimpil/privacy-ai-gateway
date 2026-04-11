@@ -5,6 +5,7 @@ export type EncryptedPayload = {
 
 export type OracleRequest = {
   encrypted: EncryptedPayload;
+  request_id?: string;
 };
 
 export type OracleResponse = {

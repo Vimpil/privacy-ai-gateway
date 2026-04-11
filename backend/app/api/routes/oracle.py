@@ -14,6 +14,7 @@ async def oracle_chat(request: OracleRequest) -> OracleResponse:
         result = await service.process_chat(
             nonce=request.encrypted.nonce,
             ciphertext=request.encrypted.ciphertext,
+            request_id=request.request_id,
         )
         return OracleResponse(
             encrypted=EncryptedPayload(
