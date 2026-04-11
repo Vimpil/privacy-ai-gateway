@@ -1,45 +1,27 @@
 from fastapi import APIRouter, HTTPException
 
-from app.ai.service import generate_response
-from app.audit.audit_service import AuditService
-from app.crypto.crypto_service import CryptoService
-from app.core.config import get_settings
 from app.schemas.oracle import EncryptedPayload, OracleRequest, OracleResponse
-from app.services.oracle_service import OracleService
+from app.services.oracle_chat_service import ChatProcessingError, OracleChatService
 
-router = APIRouter(prefix="/oracle", tags=["oracle"])
+router = APIRouter(tags=["oracle"])
 
 
 @router.post("/chat", response_model=OracleResponse)
+@router.post("/oracle/chat", response_model=OracleResponse, include_in_schema=False)
 async def oracle_chat(request: OracleRequest) -> OracleResponse:
-    settings = get_settings()
+    service = OracleChatService()
     try:
-        plaintext = CryptoService.decrypt_message(
-            settings.gateway_shared_key_b64,
-            request.encrypted.nonce,
-            request.encrypted.ciphertext,
-        )
-        ai_result = await generate_response(plaintext)
-        transformed = OracleService.transform(message=plaintext, ai_response=ai_result.response)
-        response_nonce, response_ciphertext = CryptoService.encrypt_message(
-            settings.gateway_shared_key_b64,
-            transformed,
-        )
-
-        audit_hash = AuditService(settings.audit_log_path).append_event(
-            event_type="oracle_chat",
-            payload={
-                "request_preview": plaintext[:80],
-                "response_preview": transformed[:80],
-            },
+        result = await service.process_chat(
+            nonce=request.encrypted.nonce,
+            ciphertext=request.encrypted.ciphertext,
         )
         return OracleResponse(
             encrypted=EncryptedPayload(
-                nonce=response_nonce,
-                ciphertext=response_ciphertext,
+                nonce=result.nonce,
+                ciphertext=result.ciphertext,
             ),
-            audit_hash=audit_hash,
+            audit_hash=result.audit_hash,
         )
-    except Exception as exc:
+    except ChatProcessingError as exc:
         raise HTTPException(status_code=500, detail="Oracle processing failed") from exc
 
