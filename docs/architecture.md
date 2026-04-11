@@ -13,9 +13,9 @@
 ## Separation of concerns
 
 - `frontend/src/crypto`: browser-side AES-GCM helpers.
-- `frontend/src/api`: HTTP gateway calls only.
-- `backend/app/services/crypto_service.py`: backend AES-GCM helper.
-- `backend/app/services/ollama_client.py`: local model gateway client.
+- `frontend/src/services`: HTTP gateway calls only.
+- `backend/app/crypto/crypto_service.py`: backend AES-GCM helper.
+- `backend/app/ai/ollama_client.py`: local model gateway client.
 - `backend/app/services/oracle_service.py`: presentation transformation.
-- `backend/app/services/audit_service.py`: append-only hash-chain auditing.
+- `backend/app/audit/audit_service.py`: append-only hash-chain auditing.
 

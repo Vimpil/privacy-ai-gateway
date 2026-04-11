@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException
 
+from app.ai.ollama_client import OllamaClient
+from app.audit.audit_service import AuditService
+from app.crypto.crypto_service import CryptoService
 from app.core.config import get_settings
 from app.schemas.oracle import EncryptedPayload, OracleRequest, OracleResponse
-from app.services.audit_service import AuditService
-from app.services.crypto_service import CryptoService
-from app.services.ollama_client import OllamaClient
 from app.services.oracle_service import OracleService
 
 router = APIRouter(prefix="/oracle", tags=["oracle"])

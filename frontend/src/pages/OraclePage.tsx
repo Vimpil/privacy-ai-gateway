@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { requestOracle } from "../api/client";
 import { MessageForm } from "../components/MessageForm";
 import { decryptText, encryptText } from "../crypto/aesGcm";
+import { requestOracle } from "../services/client";
 
 const SHARED_KEY =
   import.meta.env.VITE_SHARED_KEY_BASE64 ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";

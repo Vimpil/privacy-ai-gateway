@@ -8,6 +8,9 @@ Privacy-focused AI gateway with encrypted frontend/backend exchange, local Ollam
 backend/
   app/
 	api/routes/
+	ai/
+	audit/
+	crypto/
 	core/
 	schemas/
 	services/
@@ -17,10 +20,10 @@ backend/
 frontend/
   public/
   src/
-	api/
 	components/
 	crypto/
 	pages/
+	services/
 	types/
 docs/
 ```
