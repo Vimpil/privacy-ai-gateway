@@ -12,6 +12,16 @@ const STEPS = {
   decrypt: "🔓 Decrypting response...",
 };
 
+const WAITING_PHRASES = [
+  "Aligning crystal matrices with local llama cortex...",
+  "Consulting the stars, satellites, and one very sleepy GPU...",
+  "Oracle pigeons are delivering your prompt to the model...",
+  "Negotiating with the silicon spirits for better logits...",
+  "Civilization council is debating your request this turn...",
+  "Sims committee is routing your thought bubble to llama...",
+  "Decoding tea leaves and token probabilities...",
+];
+
 export function OraclePage() {
   const [message, setMessage]     = useState("");
   const [result, setResult]       = useState("");
@@ -19,12 +29,25 @@ export function OraclePage() {
   const [error, setError]         = useState("");
   const [loading, setLoading]     = useState(false);
   const [step, setStep]           = useState("");
+  const [stepStatus, setStepStatus] = useState<"ok" | "warn" | "error" | "running">("running");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [phraseIndex, setPhraseIndex] = useState(0);
   const pollRef = useRef<number | null>(null);
+  const tickRef = useRef<number | null>(null);
+  const phraseRef = useRef<number | null>(null);
 
   const stopProgressPolling = () => {
     if (pollRef.current !== null) {
       window.clearInterval(pollRef.current);
       pollRef.current = null;
+    }
+    if (tickRef.current !== null) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+    if (phraseRef.current !== null) {
+      window.clearInterval(phraseRef.current);
+      phraseRef.current = null;
     }
   };
 
@@ -38,10 +61,23 @@ export function OraclePage() {
         const latest = logs[logs.length - 1];
         const statusIcon = latest.status === "warn" ? "[WARN]" : latest.status === "error" ? "[ERR]" : "[OK]";
         setStep(`${statusIcon} ${latest.stage}: ${latest.message}`);
+        if (latest.status === "warn" || latest.status === "error" || latest.status === "ok") {
+          setStepStatus(latest.status);
+        } else {
+          setStepStatus("running");
+        }
       } catch {
         // Keep UI responsive even if polling fails transiently.
       }
     }, 800);
+
+    tickRef.current = window.setInterval(() => {
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+
+    phraseRef.current = window.setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % WAITING_PHRASES.length);
+    }, 2600);
   };
 
   useEffect(() => stopProgressPolling, []);
@@ -57,6 +93,9 @@ export function OraclePage() {
       setError("");
       setResult("");
       setAuditHash("");
+      setElapsedSeconds(0);
+      setStepStatus("running");
+      setPhraseIndex(Math.floor(Math.random() * WAITING_PHRASES.length));
 
       setStep(STEPS.encrypt);
       const encrypted = await encryptText(SHARED_KEY, message);
@@ -80,6 +119,7 @@ export function OraclePage() {
       stopProgressPolling();
       setLoading(false);
       setStep("");
+      setStepStatus("running");
     }
   };
 
@@ -99,6 +139,9 @@ export function OraclePage() {
         onSubmit={handleSubmit}
         loading={loading}
         step={step}
+        stepStatus={stepStatus}
+        elapsedSeconds={elapsedSeconds}
+        progressPhrase={WAITING_PHRASES[phraseIndex]}
       />
 
       <div className="card">

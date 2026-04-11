@@ -4,9 +4,21 @@ type MessageFormProps = {
   onSubmit: () => void;
   loading: boolean;
   step?: string;
+  progressPhrase?: string;
+  elapsedSeconds?: number;
+  stepStatus?: "ok" | "warn" | "error" | "running";
 };
 
-export function MessageForm({ value, onChange, onSubmit, loading, step }: MessageFormProps) {
+export function MessageForm({
+  value,
+  onChange,
+  onSubmit,
+  loading,
+  step,
+  progressPhrase,
+  elapsedSeconds,
+  stepStatus = "running",
+}: MessageFormProps) {
   return (
     <div className="card">
       <p className="card__label">Your Prompt</p>
@@ -28,6 +40,16 @@ export function MessageForm({ value, onChange, onSubmit, loading, step }: Messag
           {step}
         </span>
       </div>
+
+      {loading && (
+        <div className="progress-panel">
+          <p className="progress-phrase">{progressPhrase}</p>
+          <div className="progress-meta">
+            <span className={`progress-stage progress-stage--${stepStatus}`}>{stepStatus}</span>
+            <span className="progress-timer">{elapsedSeconds ?? 0}s</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -152,6 +152,72 @@ button.btn-primary:disabled {
 }
 .step-indicator.visible { opacity: 1; }
 
+.progress-panel {
+  margin-top: 0.85rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  background: rgba(24, 29, 46, 0.55);
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.progress-phrase {
+  color: var(--text);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  min-height: 1.5rem;
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.55rem;
+}
+
+.progress-stage,
+.progress-timer {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+  border: 1px solid var(--border);
+}
+
+.progress-stage {
+  color: var(--cyan);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.progress-stage--ok {
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.progress-stage--warn {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.progress-stage--error {
+  color: var(--error);
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.progress-timer {
+  color: var(--text-muted);
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 rgba(124, 58, 237, 0); }
+  50% { box-shadow: 0 0 16px rgba(124, 58, 237, 0.18); }
+  100% { box-shadow: 0 0 0 rgba(124, 58, 237, 0); }
+}
+
 /* ── Response panel ── */
 .response-content {
   white-space: pre-wrap;
