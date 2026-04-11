@@ -46,7 +46,7 @@ export function MessageForm({
       {loading && (
         <div className="progress-panel">
           {publicSourceLabel && <p className="progress-source">Public source: {publicSourceLabel}</p>}
-          <p className="progress-phrase">{progressPhrase}</p>
+          <p className="progress-phrase" key={progressPhrase}>{progressPhrase}</p>
           <div className="progress-meta">
             <span className={`progress-stage progress-stage--${stepStatus}`}>{stepStatus}</span>
             <span className="progress-timer">{elapsedSeconds ?? 0}s</span>

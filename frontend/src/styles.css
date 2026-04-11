@@ -166,7 +166,7 @@ button.btn-primary:disabled {
   font-size: 0.83rem;
   line-height: 1.5;
   min-height: 1.5rem;
-  animation: phraseFade 2.6s ease-in-out infinite;
+  animation: phraseFade 0.55s ease-out;
 }
 
 .progress-source {
@@ -227,10 +227,8 @@ button.btn-primary:disabled {
 }
 
 @keyframes phraseFade {
-  0% { opacity: 0.45; transform: translateY(2px); }
-  15% { opacity: 1; transform: translateY(0); }
-  85% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0.55; transform: translateY(-1px); }
+  0% { opacity: 0; transform: translateY(3px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .public-api-card {

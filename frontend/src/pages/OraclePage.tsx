@@ -3,6 +3,7 @@ import { MessageForm } from "../components/MessageForm";
 import { decryptText, encryptText } from "../crypto/aesGcm";
 import { fetchProcessingStageLogsForRequest, requestOracle } from "../services/client";
 import type { PublicApiContext } from "../types/oracle";
+import { buildWaitingPhrases, pickRandomPhraseIndex } from "./oracleLoaderPhrases";
 
 const SHARED_KEY =
   import.meta.env.VITE_SHARED_KEY_BASE64 ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
@@ -12,16 +13,6 @@ const STEPS = {
   send:    "📡 Consulting oracle...",
   decrypt: "🔓 Decrypting response...",
 };
-
-const BASE_WAITING_PHRASES = [
-  "Aligning crystal matrices with local llama cortex...",
-  "Consulting the stars, satellites, and one very sleepy GPU...",
-  "Oracle pigeons are delivering your prompt to the model...",
-  "Negotiating with the silicon spirits for better logits...",
-  "Civilization council is debating your request this turn...",
-  "Sims committee is routing your thought bubble to llama...",
-  "Decoding tea leaves and token probabilities...",
-];
 
 function topicFromPrompt(prompt: string): string | null {
   const cleaned = prompt.trim().replace(/[?.!]+$/, "");
@@ -38,21 +29,6 @@ function topicFromPrompt(prompt: string): string | null {
   const words = cleaned.split(/\s+/).filter(Boolean);
   return words.length <= 5 ? cleaned : null;
 }
-
-function waitingPhrases(topic: string | null, publicContext: PublicApiContext | null): string[] {
-  const focus = publicContext?.title ?? topic;
-  if (!focus) return BASE_WAITING_PHRASES;
-
-  return [
-    `Dispatching Civ historians to the Wikipedia archives for ${focus}...`,
-    `The Sims mailroom is stamping paperwork marked '${focus}'...`,
-    `Oracle interns are highlighting the ${focus} scrolls from Wikipedia...`,
-    `A llama librarian is skimming public records about ${focus}...`,
-    `Cross-referencing ${focus} with public knowledge and mystical vibes...`,
-    ...BASE_WAITING_PHRASES,
-  ];
-}
-
 export function OraclePage() {
   const [message, setMessage]     = useState("");
   const [result, setResult]       = useState("");
@@ -68,7 +44,19 @@ export function OraclePage() {
   const pollRef = useRef<number | null>(null);
   const tickRef = useRef<number | null>(null);
   const phraseRef = useRef<number | null>(null);
-  const phrasePoolRef = useRef<string[]>(BASE_WAITING_PHRASES);
+  const phrasePoolRef = useRef<string[]>(buildWaitingPhrases());
+  const recentPhraseRef = useRef<number[]>([]);
+  const lastWikiTitleRef = useRef<string | null>(null);
+
+  const pickNextPhrase = (previous?: number) => {
+    const next = pickRandomPhraseIndex(
+      phrasePoolRef.current.length,
+      previous,
+      recentPhraseRef.current,
+    );
+    recentPhraseRef.current = [...recentPhraseRef.current.slice(-14), next];
+    return next;
+  };
 
   const stopProgressPolling = () => {
     if (pollRef.current !== null) {
@@ -104,9 +92,12 @@ export function OraclePage() {
         if (latest.stage === "public_api_fetch" && latest.status === "ok") {
           const match = latest.message.match(/for\s+(.+)$/i);
           const title = match?.[1]?.trim();
-          if (title) {
+          if (title && lastWikiTitleRef.current !== title) {
+            lastWikiTitleRef.current = title;
             setLoaderSourceLabel(`wikipedia: ${title}`);
-            phrasePoolRef.current = waitingPhrases(title, null);
+            phrasePoolRef.current = buildWaitingPhrases(title, title);
+            recentPhraseRef.current = [];
+            setPhraseIndex(pickNextPhrase());
           }
         }
       } catch {
@@ -119,8 +110,8 @@ export function OraclePage() {
     }, 1000);
 
     phraseRef.current = window.setInterval(() => {
-      setPhraseIndex((i) => (i + 1) % phrasePoolRef.current.length);
-    }, 2600);
+      setPhraseIndex((i) => pickNextPhrase(i));
+    }, 6200);
   };
 
   useEffect(() => stopProgressPolling, []);
@@ -138,10 +129,12 @@ export function OraclePage() {
       setAuditHash("");
       setPublicContext(null);
       setLoaderSourceLabel(undefined);
+      lastWikiTitleRef.current = null;
       setElapsedSeconds(0);
       setStepStatus("running");
-      phrasePoolRef.current = waitingPhrases(topicFromPrompt(message), null);
-      setPhraseIndex(Math.floor(Math.random() * phrasePoolRef.current.length));
+      phrasePoolRef.current = buildWaitingPhrases(topicFromPrompt(message), null);
+      recentPhraseRef.current = [];
+      setPhraseIndex(pickNextPhrase());
 
       setStep(STEPS.encrypt);
       const encrypted = await encryptText(SHARED_KEY, message);
@@ -151,8 +144,11 @@ export function OraclePage() {
       const response = await requestOracle({ encrypted, request_id: requestId });
       if (response.public_api) {
         setPublicContext(response.public_api);
+        lastWikiTitleRef.current = response.public_api.title;
         setLoaderSourceLabel(`${response.public_api.provider}: ${response.public_api.title}`);
-        phrasePoolRef.current = waitingPhrases(topicFromPrompt(message), response.public_api);
+        phrasePoolRef.current = buildWaitingPhrases(topicFromPrompt(message), response.public_api.title);
+        recentPhraseRef.current = [];
+        setPhraseIndex(pickNextPhrase());
       }
 
       setStep(STEPS.decrypt);
