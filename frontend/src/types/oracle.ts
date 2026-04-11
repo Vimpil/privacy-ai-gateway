@@ -1,0 +1,14 @@
+export type EncryptedPayload = {
+  nonce: string;
+  ciphertext: string;
+};
+
+export type OracleRequest = {
+  encrypted: EncryptedPayload;
+};
+
+export type OracleResponse = {
+  encrypted: EncryptedPayload;
+  audit_hash: string;
+};
+
