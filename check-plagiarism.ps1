@@ -55,7 +55,13 @@ New-Item -ItemType Directory -Path $copydetectOut -Force | Out-Null
 Write-Ok "Reports will be written to $reportRoot"
 
 $jscpdCmd = Get-Command jscpd -ErrorAction SilentlyContinue
-$pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+$venvPython = Join-Path $root "backend\.venv\Scripts\python.exe"
+$pythonCmd = $null
+if (Test-Path $venvPython) {
+  $pythonCmd = @{ Source = $venvPython }
+} else {
+  $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
+}
 
 if ($ValidateOnly) {
   Write-Step "Validate only"
@@ -100,11 +106,13 @@ if ($pythonCmd) {
   if (-not $copydetectInstalled) {
     Write-Warn "copydetect not installed. Install with: python -m pip install copydetect"
   } else {
-    $backendPath = Join-Path $root "backend"
+    $backendAppPath = Join-Path $root "backend\app"
+    $backendTestsPath = Join-Path $root "backend\tests"
     $copydetectReport = Join-Path $copydetectOut "copydetect_report.html"
 
     $ErrorActionPreference = "Continue"
-    & $pythonCmd.Source -m copydetect "$backendPath" --out-file "$copydetectReport"
+    # Scan only authored source + tests (avoid backend/.venv and other large runtime folders).
+    & $pythonCmd.Source -m copydetect -t "$backendAppPath" "$backendTestsPath" -e py -O "$copydetectReport"
     $copydetectExit = $LASTEXITCODE
     $ErrorActionPreference = $oldErr
 
@@ -119,5 +127,8 @@ if ($pythonCmd) {
 }
 
 Write-Info "Done. Open reports under: $reportRoot"
+
+
+
 
 
