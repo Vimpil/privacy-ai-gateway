@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 
@@ -23,6 +24,10 @@ class AIResponse:
     tokens: int | None = field(default=None)
 
 
+def _fallback_response(reason: str) -> AIResponse:
+    return AIResponse(model=f"mock:{reason}", response=_MOCK_RESPONSE)
+
+
 async def generate_response(prompt: str) -> AIResponse:
     """Send prompt to Ollama and return a structured AIResponse.
 
@@ -36,26 +41,36 @@ async def generate_response(prompt: str) -> AIResponse:
         "stream": False,
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            raw = await client.post(url, json=payload)
-            raw.raise_for_status()
+    attempts = max(1, settings.ollama_retries + 1)
+    last_error: Exception | None = None
 
-        data = raw.json()
-        return AIResponse(
-            model=str(data.get("model", settings.ollama_model)),
-            response=str(data.get("response", "")),
-            tokens=data.get("eval_count"),
-        )
+    for attempt in range(1, attempts + 1):
+        try:
+            async with httpx.AsyncClient(timeout=settings.ollama_timeout_sec) as client:
+                raw = await client.post(url, json=payload)
+                raw.raise_for_status()
 
-    except (httpx.ConnectError, httpx.TimeoutException) as exc:
-        logger.warning("Ollama unreachable — using mock response (%s)", exc)
-        return AIResponse(model=_MOCK_MODEL, response=_MOCK_RESPONSE)
+            data = raw.json()
+            return AIResponse(
+                model=str(data.get("model", settings.ollama_model)),
+                response=str(data.get("response", "")),
+                tokens=data.get("eval_count"),
+            )
 
-    except httpx.HTTPStatusError as exc:
-        logger.warning(
-            "Ollama returned HTTP %s — using mock response",
-            exc.response.status_code,
-        )
-        return AIResponse(model=_MOCK_MODEL, response=_MOCK_RESPONSE)
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+            last_error = exc
+            logger.warning(
+                "Ollama attempt %s/%s failed (%s)",
+                attempt,
+                attempts,
+                type(exc).__name__,
+            )
+            if attempt < attempts:
+                await asyncio.sleep(settings.ollama_retry_backoff_sec * attempt)
+
+    if settings.ollama_fallback_enabled:
+        logger.warning("Using fallback response after %s failed Ollama attempts", attempts)
+        return _fallback_response("unavailable")
+
+    raise RuntimeError("Ollama unavailable and fallback disabled") from last_error
 

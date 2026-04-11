@@ -55,11 +55,16 @@ class OracleChatService:
                 message="Sending prompt to local Ollama",
             )
             ai_result = await generate_response(plaintext)
+            ai_status = "ok"
+            ai_message = f"Model responded: {ai_result.model}"
+            if ai_result.model.startswith("mock"):
+                ai_status = "warn"
+                ai_message = "Ollama unavailable, using fallback response"
             self.stage_logger.append(
                 request_id=request_id,
                 stage="ai_inference",
-                status="ok",
-                message=f"Model responded: {ai_result.model}",
+                status=ai_status,
+                message=ai_message,
             )
 
             self.stage_logger.append(

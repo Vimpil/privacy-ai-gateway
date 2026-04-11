@@ -17,6 +17,10 @@ async def test_process_chat_success(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = Settings(
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3.2:3b",
+        ollama_timeout_sec=120,
+        ollama_retries=1,
+        ollama_retry_backoff_sec=2,
+        ollama_fallback_enabled=True,
         gateway_shared_key_b64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         audit_log_path="data/audit.log",
         processing_log_path="data/processing.log",
@@ -76,6 +80,10 @@ async def test_process_chat_wraps_errors(monkeypatch: pytest.MonkeyPatch) -> Non
     settings = Settings(
         ollama_base_url="http://localhost:11434",
         ollama_model="llama3.2:3b",
+        ollama_timeout_sec=120,
+        ollama_retries=1,
+        ollama_retry_backoff_sec=2,
+        ollama_fallback_enabled=True,
         gateway_shared_key_b64="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
         audit_log_path="data/audit.log",
         processing_log_path="data/processing.log",

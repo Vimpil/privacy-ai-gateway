@@ -150,9 +150,19 @@ Set backend model configuration in `backend/.env`:
 ```env
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2:3b
+OLLAMA_TIMEOUT_SEC=120
+OLLAMA_RETRIES=1
+OLLAMA_RETRY_BACKOFF_SEC=2
+OLLAMA_FALLBACK_ENABLED=true
 ```
 
 If Ollama is not installed or unavailable, Cipher Oracle still runs and returns a safe fallback response.
+
+If you prefer to fail fast instead of fallback (for strict local inference), set:
+
+```env
+OLLAMA_FALLBACK_ENABLED=false
+```
 
 ### Quick Start (One Command)
 

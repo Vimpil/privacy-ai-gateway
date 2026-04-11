@@ -136,7 +136,7 @@ export function AuditPage() {
                       <span className="audit-event-badge">{entry.stage}</span>
                     </td>
                     <td>
-                      <span className={`audit-event-badge ${entry.status === "error" ? "audit-event-badge--error" : ""}`}>
+                      <span className={`audit-event-badge ${entry.status === "error" ? "audit-event-badge--error" : ""} ${entry.status === "warn" ? "audit-event-badge--warn" : ""}`}>
                         {entry.status}
                       </span>
                     </td>

@@ -9,6 +9,8 @@ from app.ai.service import AIResponse, generate_response
 async def test_generate_response_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
     monkeypatch.setenv("OLLAMA_MODEL", "llama3.2:3b")
+    monkeypatch.setenv("OLLAMA_RETRIES", "0")
+    monkeypatch.setenv("OLLAMA_RETRY_BACKOFF_SEC", "0")
 
     mock_response = MagicMock()
     mock_response.json.return_value = {
@@ -40,6 +42,8 @@ async def test_generate_response_falls_back_on_connect_error(
 
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
     monkeypatch.setenv("OLLAMA_MODEL", "llama3.2:3b")
+    monkeypatch.setenv("OLLAMA_RETRIES", "0")
+    monkeypatch.setenv("OLLAMA_RETRY_BACKOFF_SEC", "0")
 
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -49,7 +53,7 @@ async def test_generate_response_falls_back_on_connect_error(
     with patch("app.ai.service.httpx.AsyncClient", return_value=mock_client):
         result = await generate_response("What is privacy?")
 
-    assert result.model == "mock"
+    assert result.model.startswith("mock")
     assert "unavailable" in result.response.lower()
     assert result.tokens is None
 
@@ -62,6 +66,8 @@ async def test_generate_response_falls_back_on_http_error(
 
     monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
     monkeypatch.setenv("OLLAMA_MODEL", "llama3.2:3b")
+    monkeypatch.setenv("OLLAMA_RETRIES", "0")
+    monkeypatch.setenv("OLLAMA_RETRY_BACKOFF_SEC", "0")
 
     error_response = MagicMock()
     error_response.status_code = 503
@@ -76,6 +82,6 @@ async def test_generate_response_falls_back_on_http_error(
     with patch("app.ai.service.httpx.AsyncClient", return_value=mock_client):
         result = await generate_response("What is privacy?")
 
-    assert result.model == "mock"
+    assert result.model.startswith("mock")
     assert result.tokens is None
 
