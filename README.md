@@ -418,6 +418,14 @@ npm run build
 
 Validates TypeScript, CSS, and module bundling.
 
+**Plagiarism / Clone Check (optional):**
+```powershell
+.\check-plagiarism.ps1 -ValidateOnly
+.\check-plagiarism.ps1
+```
+
+Reports are generated under `reports/plagiarism/`.
+
 ---
 
 ## Future Improvements

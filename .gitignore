@@ -23,6 +23,9 @@ frontend/.env
 backend/data/audit.log
 backend/data/processing.log
 
+# Generated reports
+reports/
+
 # IDE files
 .idea/
 
