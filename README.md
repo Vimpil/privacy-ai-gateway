@@ -122,6 +122,38 @@ Frontend receives encrypted response:
 - **Node.js 20+** (frontend)
 - **Ollama** (optional; system falls back gracefully if unavailable)
 
+### Ollama Setup (Llama 3)
+
+Install Ollama (Windows):
+
+```powershell
+winget install -e --id Ollama.Ollama
+```
+
+Pull and run Llama 3 locally:
+
+```powershell
+ollama pull llama3.2:3b
+ollama run llama3.2:3b
+```
+
+If `ollama` is not recognized, open a new PowerShell window (PATH refresh) and retry.
+
+Verify Ollama is reachable:
+
+```powershell
+Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -UseBasicParsing
+```
+
+Set backend model configuration in `backend/.env`:
+
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2:3b
+```
+
+If Ollama is not installed or unavailable, Cipher Oracle still runs and returns a safe fallback response.
+
 ### Quick Start (One Command)
 
 From the project root, run:
