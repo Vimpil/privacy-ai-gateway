@@ -11,6 +11,10 @@ frontend/vite.config.js
 frontend/vite.config.d.ts
 *.tsbuildinfo
 
+# Stray root-level lockfile guard
+/package-lock.json
+/package.json
+
 # Local env files
 backend/.env
 frontend/.env
