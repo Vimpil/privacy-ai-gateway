@@ -122,7 +122,31 @@ Frontend receives encrypted response:
 - **Node.js 20+** (frontend)
 - **Ollama** (optional; system falls back gracefully if unavailable)
 
-### Setup
+### Quick Start (One Command)
+
+From the project root, run:
+
+```powershell
+.\start.ps1
+```
+
+This script will:
+1. Create environment files from examples
+2. Set up Python virtual environment
+3. Install all dependencies (backend + frontend)
+4. Print instructions for starting services
+
+Then, start both services with:
+
+```powershell
+.\run-dev.ps1
+```
+
+This opens both backend and frontend in parallel, and automatically opens your browser to `http://127.0.0.1:5173`.
+
+---
+
+### Manual Setup (Alternative)
 
 1. **Clone and navigate:**
    ```bash
@@ -158,6 +182,8 @@ Frontend receives encrypted response:
    - **App:** `http://127.0.0.1:5173`
    - **Docs:** `http://127.0.0.1:8000/docs` (OpenAPI/Swagger)
    - **Health:** `http://127.0.0.1:8000/health`
+
+---
 
 ### Verify Setup
 - Run backend tests: `pytest -q` (from `backend/` directory)
