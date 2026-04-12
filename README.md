@@ -18,12 +18,18 @@ Cipher Oracle is a production-style MLH project that enables users to interact w
 └─────────────┘          │              │          └──────────────┘
                          │ + Oracle     │
                          │ + Audit      │
-                         └──────────────┘
+                         └──────┬───────┘
+                                │
+                                ▼
+                        ┌──────────────┐
+                        │  Wikipedia   │
+                        │  Public API  │
+                        └──────────────┘
 ```
 
 **Key principles:**
 - **Zero-knowledge gateway:** Backend sees encrypted payloads in transit; key lives only on client
-- **Local-first inference:** Ollama runs on user's machine or trusted infrastructure (not cloud)
+- **Dual processing modes:** `wikipedia_only` (default) or local Ollama (`ai`) mode
 - **Immutable audit trail:** Every request/response appended to SHA-256 hash chain
 - **Minimal attack surface:** Service layer separation, rate limiting, consistent error handling
 
@@ -283,7 +289,8 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   │   │   ├── ollama_client.py    # Local LLM gateway
 │   │   │   └── service.py          # High-level AI interface
 │   │   ├── audit/
-│   │   │   └── audit_service.py    # SHA-256 hash-chain logger
+│   │   │   ├── audit_service.py    # SHA-256 hash-chain logger
+│   │   │   └── stage_log_service.py # Request pipeline stage logs
 │   │   ├── crypto/
 │   │   │   └── crypto_service.py   # AES-GCM encrypt/decrypt
 │   │   ├── core/
@@ -306,7 +313,8 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   ├── src/
 │   │   ├── pages/
 │   │   │   ├── OraclePage.tsx      # Chat interface
-│   │   │   └── AuditPage.tsx       # Hash-chain viewer
+│   │   │   ├── AuditPage.tsx       # Hash-chain viewer
+│   │   │   └── oracleLoaderPhrases.ts # Loading phrase generator
 │   │   ├── components/
 │   │   │   └── MessageForm.tsx     # Input form + "Encrypt & Send" button
 │   │   ├── crypto/
@@ -318,7 +326,8 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   │   │   └── audit.ts            # AuditLogEntry
 │   │   ├── App.tsx                 # Tab navigation (Oracle / Audit)
 │   │   ├── styles.css              # Dark theme
-│   │   └── main.tsx                # Entry point
+│   │   ├── main.tsx                # Entry point
+│   │   └── vite-env.d.ts           # Vite type definitions
 │   ├── package.json            # Node dependencies
 │   ├── vite.config.ts          # Vite bundler config
 │   └── tsconfig.json           # TypeScript config
