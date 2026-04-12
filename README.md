@@ -28,7 +28,7 @@ Cipher Oracle is a production-style MLH project that enables users to interact w
 ```
 
 **Key principles:**
-- **Zero-knowledge gateway:** Backend sees encrypted payloads in transit; key lives only on client
+- **Encrypted transport payloads:** Browser↔gateway payloads use AES-GCM
 - **Dual processing modes:** `wikipedia_only` (default) or local Ollama (`ai`) mode
 - **Immutable audit trail:** Every request/response appended to SHA-256 hash chain
 - **Minimal attack surface:** Service layer separation, rate limiting, consistent error handling
@@ -39,7 +39,9 @@ Cipher Oracle is a production-style MLH project that enables users to interact w
 
 ### 1. Client-Side Encryption
 User submits a prompt in the browser. The frontend:
-- Reads `VITE_SHARED_KEY_BASE64` from environment (32-byte AES key)
+- Prompts for a user passphrase
+- Derives an AES-256 key via PBKDF2 (`SHA-256`, `100k+` iterations)
+- Uses a random session salt stored on the client
 - Generates a fresh 12-byte IV (AES-GCM standard)
 - Encrypts plaintext using Web Crypto API
 - Sends `{nonce: base64(iv), ciphertext: base64(encrypted_bytes)}`
@@ -56,6 +58,11 @@ FastAPI receives the encrypted payload. The backend:
 - Wikipedia mode: fetches and returns public context from Wikipedia
 - AI mode: Ollama (local LLM) processes plaintext prompt with optional Wikipedia enrichment
 - No cloud LLM dependency required for default mode
+
+### 3b. Experimental Client-Only Mode
+- `client_only` runs Wikipedia fetch directly in the browser
+- Skips backend chat/decrypt/encrypt pipeline and audit hash generation
+- Useful for demos and local fallback, not the primary audited mode
 
 ### 4. Oracle Transformation
 Backend applies a lightweight "oracle" layer:
@@ -91,7 +98,8 @@ Frontend receives encrypted response:
 - **AES-GCM:** NIST-approved authenticated encryption
 - **Fresh IV per request:** Prevents deterministic encryption and replay attacks
 - **Web Crypto API:** Native browser support, no third-party crypto libraries
-- **Key management:** Shared key lives in frontend environment; backend never stores it
+- **PBKDF2 key derivation:** AES key is derived from user passphrase (`SHA-256`, `100k+` iterations)
+- **Session salt:** Random salt generated per session and reused for request/response decrypt path
 - **Compatibility:** Verified round-trip encryption/decryption between Python backend and TypeScript frontend
 
 ### 🤖 **Local AI Inference**
@@ -104,6 +112,7 @@ Frontend receives encrypted response:
 - **Wikipedia REST API:** Fetches public summaries for clear factual topics
 - **Best-effort enrichment:** Public context is injected into the Ollama prompt when available
 - **Default mode:** `wikipedia_only` can run without Ollama
+- **Experimental mode:** `client_only` fetches Wikipedia directly from frontend (no backend audit hash)
 - **Loader-aware UX:** Progress panel can show Wikipedia as the current public source while processing
 - **MLH challenge fit:** The project now clearly uses a publicly available API in the request pipeline
 
@@ -126,6 +135,20 @@ Frontend receives encrypted response:
 - **CORS:** Configured for dev (`localhost:5173`, `localhost:3000`) and custom origins
 - **Input validation:** Pydantic schemas on all routes
 - **Consistent responses:** Standardized error format for debugging
+
+## Security Model
+
+- **Client-side AES-GCM:** Request/response bodies are encrypted in browser before transport
+- **PBKDF2-derived keys:** No static frontend secret; key derived from user passphrase (`SHA-256`, `100k+` iterations)
+- **Ephemeral backend plaintext:** Decrypted plaintext is processed in-memory and explicitly dropped after use
+- **No plaintext persistence:** Stage/audit logs use safe hash previews, never raw prompt/response text
+- **Tamper-evident audit:** SHA-256 hash-chain records provide integrity evidence for audit chronology
+
+## Threat Model
+
+- **Untrusted network:** Mitigated via TLS + encrypted application payloads (AES-GCM)
+- **Honest-but-curious backend operator:** Mitigated by minimizing plaintext lifetime and redacting logs
+- **Log tampering attempts:** Mitigated by append-only hash chain with previous-hash linkage
 
 ---
 
@@ -217,8 +240,8 @@ This opens both backend and frontend in parallel, and automatically opens your b
    Copy-Item .\backend\.env.example .\backend\.env
    Copy-Item .\frontend\.env.example .\frontend\.env
    ```
-    - Edit `backend/.env`: Set `GATEWAY_SHARED_KEY_BASE64` (base64-encoded 32-byte AES key)
-    - Edit `frontend/.env`: Set `VITE_SHARED_KEY_BASE64` (same key)
+    - Edit `backend/.env`: Set `GATEWAY_SHARED_KEY_BASE64` (legacy fallback key)
+    - Frontend no longer requires `VITE_SHARED_KEY_BASE64`
     - Do not use placeholder/demo keys in production
    - Optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `AUDIT_LOG_PATH`, `PROCESSING_LOG_PATH`
 
@@ -365,6 +388,13 @@ Encrypted conversation with the oracle.
 - `wikipedia_only` (default): skip Ollama and answer from Wikipedia context
 - `ai`: use Ollama with optional Wikipedia enrichment
 
+Frontend also has an experimental `client_only` mode that bypasses `/api/v1/chat` entirely.
+
+Optional request fields for passphrase-derived encryption:
+- `passphrase`: user-entered passphrase (processed in-memory)
+- `kdf_salt`: base64 session salt
+- `kdf_iterations`: PBKDF2 iteration count (`>= 100000`)
+
 **Response (200 OK):**
 ```json
 {
@@ -487,7 +517,6 @@ Reports are generated under `reports/plagiarism/`.
 ## Future Improvements
 
 ### Phase 2: Enhanced Privacy
-- [ ] **Client-side key derivation:** Use PBKDF2 to derive key from passphrase
 - [ ] **Key rotation:** Implement versioned encryption with key rollover
 - [ ] **Multi-hop routing:** Optional proxy chain for additional anonymity
 - [ ] **Differential privacy:** Add ε-DP noise to audit logs to protect query patterns

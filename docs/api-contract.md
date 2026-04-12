@@ -10,6 +10,9 @@ Legacy alias (still supported): `POST /api/v1/oracle/chat`
 {
   "request_id": "optional-client-generated-id",
   "mode": "wikipedia_only",
+  "passphrase": "optional-user-passphrase",
+  "kdf_salt": "optional-base64-salt",
+  "kdf_iterations": 100000,
   "encrypted": {
     "nonce": "base64-12-byte-iv",
     "ciphertext": "base64-ciphertext-with-gcm-tag"
@@ -20,6 +23,8 @@ Legacy alias (still supported): `POST /api/v1/oracle/chat`
 `mode` values:
 - `wikipedia_only` (default): skip Ollama and respond using Wikipedia context only
 - `ai`: use Ollama + optional Wikipedia enrichment
+
+Passphrase/KDF fields are optional for backward compatibility with legacy shared-key clients.
 
 ### Response
 

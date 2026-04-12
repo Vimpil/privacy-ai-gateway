@@ -7,6 +7,9 @@ export type OracleRequest = {
   encrypted: EncryptedPayload;
   request_id?: string;
     mode?: "ai" | "wikipedia_only";
+  passphrase?: string;
+  kdf_salt?: string;
+  kdf_iterations?: number;
 };
 
 export type PublicApiContext = {

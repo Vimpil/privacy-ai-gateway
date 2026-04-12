@@ -16,6 +16,9 @@ async def oracle_chat(request: OracleRequest) -> OracleResponse:
             ciphertext=request.encrypted.ciphertext,
             request_id=request.request_id,
             mode=request.mode,
+            passphrase=request.passphrase,
+            kdf_salt=request.kdf_salt,
+            kdf_iterations=request.kdf_iterations,
         )
         return OracleResponse(
             encrypted=EncryptedPayload(

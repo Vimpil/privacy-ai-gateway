@@ -9,7 +9,17 @@ client = TestClient(app)
 
 
 def test_chat_route_returns_encrypted_payload(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+    async def fake_process_chat(
+        self,
+        *,
+        nonce: str,
+        ciphertext: str,
+        request_id: str | None = None,
+        mode: str = "ai",
+        passphrase: str | None = None,
+        kdf_salt: str | None = None,
+        kdf_iterations: int = 100_000,
+    ) -> ChatResult:
         assert nonce == "req-nonce"
         assert ciphertext == "req-ciphertext"
         assert request_id is None
@@ -41,7 +51,7 @@ def test_chat_route_returns_encrypted_payload(monkeypatch) -> None:
 
 
 def test_chat_route_maps_service_error_to_http_500(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai", passphrase: str | None = None, kdf_salt: str | None = None, kdf_iterations: int = 100_000) -> ChatResult:
         raise ChatProcessingError("boom")
 
     monkeypatch.setattr(
@@ -62,7 +72,7 @@ def test_chat_route_maps_service_error_to_http_500(monkeypatch) -> None:
 
 
 def test_legacy_oracle_chat_alias_still_works(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai", passphrase: str | None = None, kdf_salt: str | None = None, kdf_iterations: int = 100_000) -> ChatResult:
         return ChatResult(
             nonce="resp-nonce",
             ciphertext="resp-ciphertext",
@@ -83,7 +93,7 @@ def test_legacy_oracle_chat_alias_still_works(monkeypatch) -> None:
 
 
 def test_chat_route_includes_public_api_context_when_available(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai", passphrase: str | None = None, kdf_salt: str | None = None, kdf_iterations: int = 100_000) -> ChatResult:
         return ChatResult(
             nonce="resp-nonce",
             ciphertext="resp-ciphertext",
@@ -112,7 +122,7 @@ def test_chat_route_includes_public_api_context_when_available(monkeypatch) -> N
 
 
 def test_chat_route_passes_wikipedia_only_mode(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai", passphrase: str | None = None, kdf_salt: str | None = None, kdf_iterations: int = 100_000) -> ChatResult:
         assert mode == "wikipedia_only"
         return ChatResult(
             nonce="resp-nonce",

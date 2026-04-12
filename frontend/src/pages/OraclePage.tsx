@@ -1,12 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageForm } from "../components/MessageForm";
 import { decryptText, encryptText } from "../crypto/aesGcm";
-import { fetchProcessingStageLogsForRequest, requestOracle } from "../services/client";
+import { fetchProcessingStageLogsForRequest, fetchWikipediaSummaryClient, requestOracle } from "../services/client";
 import type { PublicApiContext } from "../types/oracle";
 import { buildWaitingPhrases, pickRandomPhraseIndex } from "./oracleLoaderPhrases";
-
-const SHARED_KEY =
-  import.meta.env.VITE_SHARED_KEY_BASE64 ?? "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
 const STEPS = {
   encrypt: "🔐 Encrypting...",
@@ -40,7 +37,8 @@ export function OraclePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [publicContext, setPublicContext] = useState<PublicApiContext | null>(null);
-  const [mode, setMode] = useState<"ai" | "wikipedia_only">("wikipedia_only");
+  const [mode, setMode] = useState<"ai" | "wikipedia_only" | "client_only">("wikipedia_only");
+  const [passphrase, setPassphrase] = useState("");
   const [loaderSourceLabel, setLoaderSourceLabel] = useState<string | undefined>(undefined);
   const [responseFresh, setResponseFresh] = useState(false);
   const pollRef = useRef<number | null>(null);
@@ -125,8 +123,8 @@ export function OraclePage() {
   }, [responseFresh]);
 
   const handleSubmit = async () => {
-    if (!SHARED_KEY) {
-      setError("Missing VITE_SHARED_KEY_BASE64 in environment.");
+    if (mode !== "client_only" && passphrase.trim().length < 8) {
+      setError("Enter a passphrase with at least 8 characters.");
       return;
     }
     try {
@@ -144,12 +142,34 @@ export function OraclePage() {
       recentPhraseRef.current = [];
       setPhraseIndex(pickNextPhrase());
 
+      if (mode === "client_only") {
+        setStep("🌐 Fetching Wikipedia from browser...");
+        const wiki = await fetchWikipediaSummaryClient(message);
+        if (!wiki) {
+          setResult("The system whispers... No Wikipedia context found for this prompt.");
+          setAuditHash("");
+        } else {
+          setResult(`The Cipher Oracle reveals... ${wiki.summary}`);
+          setPublicContext({ provider: "wikipedia", title: wiki.title, summary: wiki.summary, url: wiki.url });
+          setAuditHash("");
+        }
+        setResponseFresh(true);
+        return;
+      }
+
       setStep(STEPS.encrypt);
-      const encrypted = await encryptText(SHARED_KEY, message);
+      const cryptoPacket = await encryptText(passphrase, message);
 
       setStep(STEPS.send);
       startProgressPolling(requestId);
-      const response = await requestOracle({ encrypted, request_id: requestId, mode });
+      const response = await requestOracle({
+        encrypted: cryptoPacket.encrypted,
+        request_id: requestId,
+        mode,
+        passphrase,
+        kdf_salt: cryptoPacket.kdf.salt,
+        kdf_iterations: cryptoPacket.kdf.iterations,
+      });
       if (response.public_api) {
         setPublicContext(response.public_api);
         lastWikiTitleRef.current = response.public_api.title;
@@ -161,9 +181,10 @@ export function OraclePage() {
 
       setStep(STEPS.decrypt);
       const decrypted = await decryptText(
-        SHARED_KEY,
+        passphrase,
         response.encrypted.nonce,
         response.encrypted.ciphertext,
+        cryptoPacket.kdf,
       );
 
       setResult(decrypted);
@@ -195,6 +216,8 @@ export function OraclePage() {
         onSubmit={handleSubmit}
         mode={mode}
         onModeChange={setMode}
+        passphrase={passphrase}
+        onPassphraseChange={setPassphrase}
         loading={loading}
         step={step}
         stepStatus={stepStatus}

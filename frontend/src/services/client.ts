@@ -35,3 +35,23 @@ export async function fetchProcessingStageLogsForRequest(
   return (await response.json()) as ProcessingStageEntry[];
 }
 
+export async function fetchWikipediaSummaryClient(topic: string): Promise<{ title: string; summary: string; url: string } | null> {
+  const normalized = topic.trim().replace(/\s+/g, "_");
+  if (!normalized) return null;
+  const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(normalized)}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as {
+    title?: string;
+    extract?: string;
+    content_urls?: { desktop?: { page?: string } };
+  };
+  if (!data.extract) return null;
+  return {
+    title: data.title ?? topic,
+    summary: data.extract,
+    url: data.content_urls?.desktop?.page ?? "https://en.wikipedia.org",
+  };
+}
+

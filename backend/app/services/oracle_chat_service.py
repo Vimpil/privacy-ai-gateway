@@ -7,7 +7,9 @@ from app.ai.service import generate_response
 from app.audit.audit_service import AuditService
 from app.audit.stage_log_service import StageLogService
 from app.core.config import Settings, get_settings
+from app.core.security import safe_preview
 from app.crypto.crypto_service import CryptoService
+from app.crypto.crypto_service import derive_key_from_passphrase
 from app.services.oracle_service import OracleService
 from app.services.public_api_service import WikipediaContext, WikipediaService
 
@@ -37,10 +39,18 @@ class OracleChatService:
         ciphertext: str,
         request_id: str | None = None,
         mode: str = "ai",
+        passphrase: str | None = None,
+        kdf_salt: str | None = None,
+        kdf_iterations: int = 100_000,
     ) -> ChatResult:
         request_id = request_id or str(uuid4())
+        plaintext: str | None = None
         try:
             public_context: WikipediaContext | None = None
+            active_key_b64 = self.settings.gateway_shared_key_b64
+            if passphrase and kdf_salt:
+                active_key_b64 = derive_key_from_passphrase(passphrase, kdf_salt, kdf_iterations)
+
             self.stage_logger.append(
                 request_id=request_id,
                 stage="decrypt",
@@ -48,15 +58,17 @@ class OracleChatService:
                 message="Decrypting incoming payload",
             )
             plaintext = CryptoService.decrypt_message(
-                self.settings.gateway_shared_key_b64,
+                active_key_b64,
                 nonce,
                 ciphertext,
             )
+            plaintext_len = len(plaintext)
+            plaintext_preview = safe_preview(plaintext)
             self.stage_logger.append(
                 request_id=request_id,
                 stage="decrypt",
                 status="ok",
-                message="Payload decrypted successfully",
+                message=f"Payload decrypted (len={plaintext_len}, {plaintext_preview})",
             )
 
             prompt_for_ai = plaintext
@@ -67,7 +79,7 @@ class OracleChatService:
                         request_id=request_id,
                         stage="public_api_fetch",
                         status="start",
-                        message=f"Consulting Wikipedia for '{topic}'",
+                        message="Consulting Wikipedia API",
                     )
                     public_context = await self.wikipedia.fetch_summary(topic)
                     if public_context:
@@ -81,14 +93,14 @@ class OracleChatService:
                             request_id=request_id,
                             stage="public_api_fetch",
                             status="ok",
-                            message=f"Wikipedia context loaded for {public_context.title}",
+                            message="Wikipedia context loaded",
                         )
                     else:
                         self.stage_logger.append(
                             request_id=request_id,
                             stage="public_api_fetch",
                             status="warn",
-                            message=f"Wikipedia had no usable summary for '{topic}'",
+                            message="Wikipedia had no usable summary",
                         )
 
             if mode == "wikipedia_only":
@@ -144,7 +156,7 @@ class OracleChatService:
                 message="Encrypting transformed response",
             )
             response_nonce, response_ciphertext = CryptoService.encrypt_message(
-                self.settings.gateway_shared_key_b64,
+                active_key_b64,
                 transformed,
             )
             self.stage_logger.append(
@@ -163,8 +175,8 @@ class OracleChatService:
             audit_hash = AuditService(self.settings.audit_log_path).append_event(
                 event_type="oracle_chat",
                 payload={
-                    "request_preview": plaintext[:80],
-                    "response_preview": transformed[:80],
+                    "request_preview": safe_preview(plaintext),
+                    "response_preview": safe_preview(transformed),
                 },
             )
             self.stage_logger.append(
@@ -188,4 +200,10 @@ class OracleChatService:
                 message=f"Processing failed: {type(exc).__name__}",
             )
             raise ChatProcessingError("Failed to process oracle chat") from exc
+        finally:
+            # Explicitly drop plaintext/passphrase references as soon as processing is complete.
+            if plaintext is not None:
+                del plaintext
+            if passphrase is not None:
+                passphrase = None
 
