@@ -9,10 +9,11 @@ client = TestClient(app)
 
 
 def test_chat_route_returns_encrypted_payload(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None) -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
         assert nonce == "req-nonce"
         assert ciphertext == "req-ciphertext"
         assert request_id is None
+        assert mode == "wikipedia_only"
         return ChatResult(
             nonce="resp-nonce",
             ciphertext="resp-ciphertext",
@@ -40,7 +41,7 @@ def test_chat_route_returns_encrypted_payload(monkeypatch) -> None:
 
 
 def test_chat_route_maps_service_error_to_http_500(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None) -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
         raise ChatProcessingError("boom")
 
     monkeypatch.setattr(
@@ -61,7 +62,7 @@ def test_chat_route_maps_service_error_to_http_500(monkeypatch) -> None:
 
 
 def test_legacy_oracle_chat_alias_still_works(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None) -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
         return ChatResult(
             nonce="resp-nonce",
             ciphertext="resp-ciphertext",
@@ -82,7 +83,7 @@ def test_legacy_oracle_chat_alias_still_works(monkeypatch) -> None:
 
 
 def test_chat_route_includes_public_api_context_when_available(monkeypatch) -> None:
-    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None) -> ChatResult:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
         return ChatResult(
             nonce="resp-nonce",
             ciphertext="resp-ciphertext",
@@ -108,5 +109,30 @@ def test_chat_route_includes_public_api_context_when_available(monkeypatch) -> N
     assert response.status_code == 200
     assert response.json()["public_api"]["provider"] == "wikipedia"
     assert response.json()["public_api"]["title"] == "OpenCLAW"
+
+
+def test_chat_route_passes_wikipedia_only_mode(monkeypatch) -> None:
+    async def fake_process_chat(self, *, nonce: str, ciphertext: str, request_id: str | None = None, mode: str = "ai") -> ChatResult:
+        assert mode == "wikipedia_only"
+        return ChatResult(
+            nonce="resp-nonce",
+            ciphertext="resp-ciphertext",
+            audit_hash="audit-hash-xyz",
+        )
+
+    monkeypatch.setattr(
+        "app.services.oracle_chat_service.OracleChatService.process_chat",
+        fake_process_chat,
+    )
+
+    response = client.post(
+        "/api/v1/chat",
+        json={
+            "encrypted": {"nonce": "req-nonce", "ciphertext": "req-ciphertext"},
+            "mode": "wikipedia_only",
+        },
+    )
+
+    assert response.status_code == 200
 
 

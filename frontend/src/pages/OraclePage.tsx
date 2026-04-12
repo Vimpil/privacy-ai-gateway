@@ -40,7 +40,9 @@ export function OraclePage() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [publicContext, setPublicContext] = useState<PublicApiContext | null>(null);
+  const [mode, setMode] = useState<"ai" | "wikipedia_only">("wikipedia_only");
   const [loaderSourceLabel, setLoaderSourceLabel] = useState<string | undefined>(undefined);
+  const [responseFresh, setResponseFresh] = useState(false);
   const pollRef = useRef<number | null>(null);
   const tickRef = useRef<number | null>(null);
   const phraseRef = useRef<number | null>(null);
@@ -116,6 +118,12 @@ export function OraclePage() {
 
   useEffect(() => stopProgressPolling, []);
 
+  useEffect(() => {
+    if (!responseFresh) return;
+    const timer = window.setTimeout(() => setResponseFresh(false), 900);
+    return () => window.clearTimeout(timer);
+  }, [responseFresh]);
+
   const handleSubmit = async () => {
     if (!SHARED_KEY) {
       setError("Missing VITE_SHARED_KEY_BASE64 in environment.");
@@ -141,7 +149,7 @@ export function OraclePage() {
 
       setStep(STEPS.send);
       startProgressPolling(requestId);
-      const response = await requestOracle({ encrypted, request_id: requestId });
+      const response = await requestOracle({ encrypted, request_id: requestId, mode });
       if (response.public_api) {
         setPublicContext(response.public_api);
         lastWikiTitleRef.current = response.public_api.title;
@@ -159,6 +167,7 @@ export function OraclePage() {
       );
 
       setResult(decrypted);
+      setResponseFresh(true);
       setAuditHash(response.audit_hash);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -184,6 +193,8 @@ export function OraclePage() {
         value={message}
         onChange={setMessage}
         onSubmit={handleSubmit}
+        mode={mode}
+        onModeChange={setMode}
         loading={loading}
         step={step}
         stepStatus={stepStatus}
@@ -194,7 +205,7 @@ export function OraclePage() {
 
       <div className="card">
         <p className="card__label">Oracle Response</p>
-        <div className={`response-content${result ? "" : " empty"}`}>
+        <div className={`response-content${result ? "" : " empty"}${responseFresh ? " response-content--fresh" : ""}`}>
           {result || "Awaiting the oracle…"}
         </div>
 

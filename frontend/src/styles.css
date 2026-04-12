@@ -15,6 +15,7 @@
   --success:      #10b981;
   --error:        #f87171;
   --radius:       0.75rem;
+  --ease-soft:    cubic-bezier(0.22, 1, 0.36, 1);
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   font-size: 15px;
   color: var(--text);
@@ -77,6 +78,14 @@ body { min-height: 100vh; background: var(--bg); }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s var(--ease-soft), box-shadow 0.2s var(--ease-soft), transform 0.2s var(--ease-soft);
+}
+
+.card:hover {
+  border-color: #2a345a;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
 }
 
 .card__label {
@@ -115,6 +124,46 @@ textarea::placeholder { color: var(--text-muted); }
   align-items: center;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+
+.mode-switch {
+  margin-top: 0.75rem;
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.mode-switch__item {
+  border: none;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  padding: 0.38rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-switch__item:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.mode-switch__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-switch__item--active {
+  background: rgba(124, 58, 237, 0.24);
+  color: #fff;
+}
+
+.mode-switch__hint {
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 /* ── Button ── */
@@ -161,6 +210,24 @@ button.btn-primary:disabled {
   animation: pulseGlow 1.8s ease-in-out infinite;
 }
 
+.progress-rail {
+  width: 100%;
+  height: 0.32rem;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.12);
+  overflow: hidden;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+}
+
+.progress-rail__fill {
+  display: block;
+  height: 100%;
+  width: 36%;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.12), rgba(34, 211, 238, 0.75), rgba(124, 58, 237, 0.12));
+  animation: railSweep 1.6s linear infinite;
+}
+
 .progress-phrase {
   color: var(--text);
   font-size: 0.83rem;
@@ -196,6 +263,17 @@ button.btn-primary:disabled {
 .progress-stage {
   color: var(--cyan);
   background: rgba(34, 211, 238, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.progress-stage__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: var(--cyan);
+  animation: stageBlink 0.95s ease-in-out infinite;
 }
 
 .progress-stage--ok {
@@ -229,6 +307,16 @@ button.btn-primary:disabled {
 @keyframes phraseFade {
   0% { opacity: 0; transform: translateY(3px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes railSweep {
+  0% { transform: translateX(-130%); }
+  100% { transform: translateX(330%); }
+}
+
+@keyframes stageBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 .public-api-card {
@@ -273,7 +361,15 @@ button.btn-primary:disabled {
   line-height: 1.7;
   color: var(--text);
 }
+.response-content--fresh {
+  animation: responseReveal 0.5s var(--ease-soft);
+}
 .response-content.empty { color: var(--text-muted); font-style: italic; }
+
+@keyframes responseReveal {
+  0% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 
 /* ── Audit hash ── */
 .audit-row {
@@ -431,6 +527,47 @@ button.btn-primary:disabled {
 .audit-hash--genesis {
   color: var(--cyan);
   font-style: italic;
+}
+
+@media (max-width: 768px) {
+  #root {
+    padding: 1.25rem 0.8rem 2rem;
+    gap: 1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mode-switch {
+    width: 100%;
+  }
+
+  .mode-switch__item {
+    flex: 1;
+  }
+
+  .step-indicator {
+    min-height: 1.2rem;
+  }
+
+  .tab-nav__item {
+    font-size: 0.78rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 

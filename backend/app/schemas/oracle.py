@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +11,7 @@ class EncryptedPayload(BaseModel):
 class OracleRequest(BaseModel):
     encrypted: EncryptedPayload
     request_id: str | None = Field(default=None, min_length=8, max_length=128)
+    mode: Literal["ai", "wikipedia_only"] = "wikipedia_only"
 
 
 class PublicApiContext(BaseModel):

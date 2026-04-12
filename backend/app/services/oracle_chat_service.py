@@ -36,6 +36,7 @@ class OracleChatService:
         nonce: str,
         ciphertext: str,
         request_id: str | None = None,
+        mode: str = "ai",
     ) -> ChatResult:
         request_id = request_id or str(uuid4())
         try:
@@ -90,24 +91,37 @@ class OracleChatService:
                             message=f"Wikipedia had no usable summary for '{topic}'",
                         )
 
-            self.stage_logger.append(
-                request_id=request_id,
-                stage="ai_inference",
-                status="start",
-                message="Sending prompt to local Ollama",
-            )
-            ai_result = await generate_response(prompt_for_ai)
-            ai_status = "ok"
-            ai_message = f"Model responded: {ai_result.model}"
-            if ai_result.model.startswith("mock"):
-                ai_status = "warn"
-                ai_message = "Ollama unavailable, using fallback response"
-            self.stage_logger.append(
-                request_id=request_id,
-                stage="ai_inference",
-                status=ai_status,
-                message=ai_message,
-            )
+            if mode == "wikipedia_only":
+                self.stage_logger.append(
+                    request_id=request_id,
+                    stage="ai_inference",
+                    status="warn",
+                    message="Wikipedia-only mode enabled, skipping Ollama inference",
+                )
+                if public_context:
+                    ai_text = f"{public_context.title}: {public_context.summary}"
+                else:
+                    ai_text = "No Wikipedia context found for this prompt."
+            else:
+                self.stage_logger.append(
+                    request_id=request_id,
+                    stage="ai_inference",
+                    status="start",
+                    message="Sending prompt to local Ollama",
+                )
+                ai_result = await generate_response(prompt_for_ai)
+                ai_status = "ok"
+                ai_message = f"Model responded: {ai_result.model}"
+                if ai_result.model.startswith("mock"):
+                    ai_status = "warn"
+                    ai_message = "Ollama unavailable, using fallback response"
+                self.stage_logger.append(
+                    request_id=request_id,
+                    stage="ai_inference",
+                    status=ai_status,
+                    message=ai_message,
+                )
+                ai_text = ai_result.response
 
             self.stage_logger.append(
                 request_id=request_id,
@@ -115,7 +129,7 @@ class OracleChatService:
                 status="start",
                 message="Applying oracle transformation",
             )
-            transformed = OracleService.transform(ai_result.response)
+            transformed = OracleService.transform(ai_text)
             self.stage_logger.append(
                 request_id=request_id,
                 stage="oracle_transform",

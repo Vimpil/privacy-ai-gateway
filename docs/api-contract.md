@@ -9,12 +9,17 @@ Legacy alias (still supported): `POST /api/v1/oracle/chat`
 ```json
 {
   "request_id": "optional-client-generated-id",
+  "mode": "wikipedia_only",
   "encrypted": {
     "nonce": "base64-12-byte-iv",
     "ciphertext": "base64-ciphertext-with-gcm-tag"
   }
 }
 ```
+
+`mode` values:
+- `wikipedia_only` (default): skip Ollama and respond using Wikipedia context only
+- `ai`: use Ollama + optional Wikipedia enrichment
 
 ### Response
 

@@ -6,6 +6,7 @@ export type EncryptedPayload = {
 export type OracleRequest = {
   encrypted: EncryptedPayload;
   request_id?: string;
+    mode?: "ai" | "wikipedia_only";
 };
 
 export type PublicApiContext = {
