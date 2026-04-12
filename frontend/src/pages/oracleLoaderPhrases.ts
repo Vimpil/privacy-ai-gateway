@@ -122,9 +122,9 @@ export function buildWaitingPhrases(topic?: string | null, publicTitle?: string 
   const phrases: string[] = [];
   const seen = new Set<string>();
 
-  const targetSize = 2200;
+  const targetSize = 140;
   let attempts = 0;
-  while (phrases.length < targetSize && attempts < 40000) {
+  while (phrases.length < targetSize && attempts < 3000) {
     attempts += 1;
 
     const template = randomItem(TEMPLATES);
@@ -148,17 +148,19 @@ export function buildWaitingPhrases(topic?: string | null, publicTitle?: string 
 
   const focus = publicTitle ?? topic;
   if (focus) {
-    for (const agent of AGENTS) {
-      for (const action of TOPIC_ACTIONS) {
-        for (const ending of ENDINGS.slice(0, 8)) {
-          pushUnique(
-            phrases,
-            capitalizeFirstLetter(`${agent} are ${action} ${focus}. ${ending}`),
-            seen,
-          );
-        }
-      }
+    for (const action of TOPIC_ACTIONS) {
+      const agent = randomItem(AGENTS);
+      const ending = randomItem(ENDINGS);
+      pushUnique(
+        phrases,
+        capitalizeFirstLetter(`${agent} are ${action} ${focus}. ${ending}`),
+        seen,
+      );
     }
+  }
+
+  if (phrases.length === 0) {
+    return ["Consulting the oracle network. Please stand by."];
   }
 
   return phrases;

@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes.audit import router as audit_router
 from app.api.routes.oracle import router as oracle_router
-from app.middleware import ErrorHandlingMiddleware, RateLimitMiddleware
+from app.middleware import RateLimitMiddleware
 
 app = FastAPI(
     title="Cipher Oracle Gateway",
@@ -16,9 +19,6 @@ app = FastAPI(
 
 # Rate limiting must be early to reject spam before processing
 app.add_middleware(RateLimitMiddleware, requests_per_minute=100)
-
-# Error handling wraps everything
-app.add_middleware(ErrorHandlingMiddleware)
 
 # CORS allows frontend dev server to call backend
 app.add_middleware(
@@ -34,6 +34,29 @@ app.add_middleware(
     expose_headers=["Content-Length"],
     max_age=3600,
 )
+
+
+def _error_response(message: str, status_code: int, details: object | None = None) -> JSONResponse:
+    body: dict[str, object] = {"status": "error", "error": message}
+    if details is not None:
+        body["details"] = details
+    return JSONResponse(status_code=status_code, content=body)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def handle_http_exception(_: Request, exc: StarletteHTTPException) -> JSONResponse:
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed"
+    return _error_response(message, exc.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_exception(_: Request, exc: RequestValidationError) -> JSONResponse:
+    return _error_response("Invalid request", 422, details=exc.errors())
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected_exception(_: Request, __: Exception) -> JSONResponse:
+    return _error_response("Internal server error", 500)
 
 
 @app.get("/health")

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
+from app.ai.ollama_client import OllamaClient
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -34,23 +35,18 @@ async def generate_response(prompt: str) -> AIResponse:
     Falls back to a mock response if Ollama is unreachable or returns an error.
     """
     settings = get_settings()
-    url = f"{settings.ollama_base_url.rstrip('/')}/api/generate"
-    payload = {
-        "model": settings.ollama_model,
-        "prompt": prompt,
-        "stream": False,
-    }
+    client = OllamaClient(
+        base_url=settings.ollama_base_url,
+        model=settings.ollama_model,
+        timeout_sec=settings.ollama_timeout_sec,
+    )
 
     attempts = max(1, settings.ollama_retries + 1)
     last_error: Exception | None = None
 
     for attempt in range(1, attempts + 1):
         try:
-            async with httpx.AsyncClient(timeout=settings.ollama_timeout_sec) as client:
-                raw = await client.post(url, json=payload)
-                raw.raise_for_status()
-
-            data = raw.json()
+            data = await client.generate(prompt)
             return AIResponse(
                 model=str(data.get("model", settings.ollama_model)),
                 response=str(data.get("response", "")),

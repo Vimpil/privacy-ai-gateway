@@ -8,6 +8,7 @@ Legacy alias (still supported): `POST /api/v1/oracle/chat`
 
 ```json
 {
+  "request_id": "optional-client-generated-id",
   "encrypted": {
     "nonce": "base64-12-byte-iv",
     "ciphertext": "base64-ciphertext-with-gcm-tag"
@@ -23,7 +24,24 @@ Legacy alias (still supported): `POST /api/v1/oracle/chat`
     "nonce": "base64-12-byte-iv",
     "ciphertext": "base64-ciphertext-with-gcm-tag"
   },
-  "audit_hash": "sha256-hex"
+  "audit_hash": "sha256-hex",
+  "public_api": {
+    "provider": "wikipedia",
+    "title": "Example",
+    "summary": "Optional public context attached when available.",
+    "url": "https://en.wikipedia.org/wiki/Example"
+  }
 }
 ```
+
+### Error envelope
+
+```json
+{
+  "status": "error",
+  "error": "Human-readable message"
+}
+```
+
+Validation errors (`422`) include `details` with field-level diagnostics.
 

@@ -54,7 +54,10 @@ def test_chat_route_maps_service_error_to_http_500(monkeypatch) -> None:
     )
 
     assert response.status_code == 500
-    assert response.json() == {"detail": "Oracle processing failed"}
+    assert response.json() == {
+        "status": "error",
+        "error": "Oracle processing failed",
+    }
 
 
 def test_legacy_oracle_chat_alias_still_works(monkeypatch) -> None:

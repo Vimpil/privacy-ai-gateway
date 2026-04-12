@@ -209,9 +209,15 @@ This opens both backend and frontend in parallel, and automatically opens your b
    Copy-Item .\backend\.env.example .\backend\.env
    Copy-Item .\frontend\.env.example .\frontend\.env
    ```
-   - Edit `backend/.env`: Set `GATEWAY_SHARED_KEY_BASE64` (base64-encoded 32-byte AES key)
-   - Edit `frontend/.env`: Set `VITE_SHARED_KEY_BASE64` (same key)
+    - Edit `backend/.env`: Set `GATEWAY_SHARED_KEY_BASE64` (base64-encoded 32-byte AES key)
+    - Edit `frontend/.env`: Set `VITE_SHARED_KEY_BASE64` (same key)
+    - Do not use placeholder/demo keys in production
    - Optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `AUDIT_LOG_PATH`, `PROCESSING_LOG_PATH`
+
+   Generate a strong key (PowerShell):
+   ```powershell
+   [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
+   ```
 
 3. **Backend (Terminal 1):**
    ```powershell
@@ -360,13 +366,15 @@ Encrypted conversation with the oracle.
 }
 ```
 
-**Error (500):**
+**Error (any 4xx/5xx):**
 ```json
 {
   "status": "error",
   "error": "Oracle processing failed"
 }
 ```
+
+For validation failures (422), a `details` array is included.
 
 ### Audit Logs
 **GET `/api/v1/audit/logs`**

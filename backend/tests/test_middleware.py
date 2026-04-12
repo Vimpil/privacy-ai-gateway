@@ -17,10 +17,24 @@ def test_health_endpoint_is_available() -> None:
 def test_error_responses_are_consistent() -> None:
     """Error responses should have consistent structure."""
     client = TestClient(app)
-    # Request non-existent endpoint to trigger error
+
+    # 404 should use the common error envelope.
     response = client.get("/api/v1/nonexistent")
     assert response.status_code == 404
-    # FastAPI returns 404 directly; our middleware wraps 5xx errors
+    assert response.json() == {
+        "status": "error",
+        "error": "Not Found",
+    }
+
+
+def test_validation_errors_use_consistent_envelope() -> None:
+    client = TestClient(app)
+    response = client.post("/api/v1/chat", json={"encrypted": {"nonce": "x", "ciphertext": "y"}})
+    assert response.status_code == 422
+    body = response.json()
+    assert body["status"] == "error"
+    assert body["error"] == "Invalid request"
+    assert isinstance(body.get("details"), list)
 
 
 

@@ -1,14 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EncryptedPayload(BaseModel):
-    nonce: str
-    ciphertext: str
+    nonce: str = Field(min_length=8, max_length=256)
+    ciphertext: str = Field(min_length=8, max_length=65535)
 
 
 class OracleRequest(BaseModel):
     encrypted: EncryptedPayload
-    request_id: str | None = None
+    request_id: str | None = Field(default=None, min_length=8, max_length=128)
 
 
 class PublicApiContext(BaseModel):
