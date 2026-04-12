@@ -212,6 +212,14 @@ From the project root, run:
 .\start.ps1
 ```
 
+`start.ps1` is setup-only by default (creates env files, installs dependencies). It does not run servers unless `-Run` is provided.
+
+Or run setup + dev servers in one command:
+
+```powershell
+.\start.ps1 -Run
+```
+
 This script will:
 1. Create environment files from examples
 2. Set up Python virtual environment
@@ -224,7 +232,7 @@ Then, start both services with:
 .\run-dev.ps1
 ```
 
-This opens both backend and frontend in parallel, and automatically opens your browser to `http://127.0.0.1:5173`.
+`run-dev.ps1` starts both backend and frontend in parallel, and opens your browser to `http://127.0.0.1:5173`.
 
 ---
 

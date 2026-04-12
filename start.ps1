@@ -1,6 +1,12 @@
 #!/usr/bin/env pwsh
 # Cipher Oracle Startup Script
-# Usage: .\start.ps1
+# Usage: .\start.ps1 [-Run]
+# Default behavior: setup only (does not start backend/frontend)
+# Use -Run to launch dev servers after setup completes.
+
+param(
+    [switch]$Run
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -82,9 +88,17 @@ Next steps:
 2. Option B - Parallel start:
    .\run-dev.ps1
 
+3. Option C - Setup + start in one command:
+   .\start.ps1 -Run
+
 URLs:
   App:  http://127.0.0.1:5173
   API:  http://127.0.0.1:8000
   Docs: http://127.0.0.1:8000/docs
 "@ -ForegroundColor White
+
+if ($Run) {
+    Write-Host "`nLaunching dev services via .\run-dev.ps1 ..." -ForegroundColor Cyan
+    & "$PSScriptRoot\run-dev.ps1"
+}
 
