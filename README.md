@@ -2,9 +2,9 @@
 
 **Privacy-first AI gateway with end-to-end encryption, local inference, and tamper-evident audit logs.**
 
-Cipher Oracle is a production-grade system that enables users to interact with large language models while maintaining cryptographic privacy guarantees. Every query and response is encrypted client-side using AES-GCM, passed through a secure gateway, processed by a local Ollama instance, and logged immutably in a SHA-256 hash chain. The system eliminates the need for users to trust cloud AI providers with raw prompts or outputs — all processing happens locally or within a controlled, encrypted boundary.
+Cipher Oracle is a production-style MLH project that enables users to interact with AI workflows while maintaining cryptographic privacy guarantees. Every query and response is encrypted client-side using AES-GCM, passed through a secure gateway, processed via Wikipedia-only mode (default) or local Ollama mode, and logged immutably in a SHA-256 hash chain. The system eliminates the need for users to trust cloud AI providers with raw prompts or outputs — all processing happens locally or through public API context.
 
-**Status:** MVP complete with 23 passing tests. Ready for deployment and federation.
+**Status:** MVP complete with 27 passing tests. Ready for MLH submission.
 
 ---
 
@@ -42,13 +42,14 @@ User submits a prompt in the browser. The frontend:
 FastAPI receives the encrypted payload. The backend:
 - Decrypts using the same shared key via `cryptography` library
 - Recovers plaintext prompt
-- Forwards to Ollama (clear text, because Ollama runs locally)
+- Routes by mode:
+  - `wikipedia_only` (default): use Wikipedia context only
+  - `ai`: enrich with Wikipedia when possible, then forward to Ollama
 
-### 3. AI Inference
-Ollama (local LLM instance):
-- Processes plaintext prompt
-- Returns raw output (e.g., from Llama, Mistral, etc.)
-- Disconnected from any cloud service
+### 3. Public API and/or AI Inference
+- Wikipedia mode: fetches and returns public context from Wikipedia
+- AI mode: Ollama (local LLM) processes plaintext prompt with optional Wikipedia enrichment
+- No cloud LLM dependency required for default mode
 
 ### 4. Oracle Transformation
 Backend applies a lightweight "oracle" layer:
@@ -96,6 +97,7 @@ Frontend receives encrypted response:
 ### 🌐 **Public API Enrichment (Wikipedia)**
 - **Wikipedia REST API:** Fetches public summaries for clear factual topics
 - **Best-effort enrichment:** Public context is injected into the Ollama prompt when available
+- **Default mode:** `wikipedia_only` can run without Ollama
 - **Loader-aware UX:** Progress panel can show Wikipedia as the current public source while processing
 - **MLH challenge fit:** The project now clearly uses a publicly available API in the request pipeline
 
@@ -296,7 +298,7 @@ This opens both backend and frontend in parallel, and automatically opens your b
 │   │   │   └── oracle_service.py       # Oracle transformation
 │   │   ├── middleware.py       # Error handling, rate limiting
 │   │   └── main.py             # FastAPI app, middleware stack
-│   ├── tests/                  # pytest test suite (23 passing)
+│   ├── tests/                  # pytest test suite (27 passing)
 │   ├── data/                   # audit.log location
 │   └── requirements.txt        # Python dependencies
 │
@@ -342,12 +344,17 @@ Encrypted conversation with the oracle.
 ```json
 {
   "request_id": "optional-client-generated-id",
+  "mode": "wikipedia_only",
   "encrypted": {
     "nonce": "base64-encoded-12-byte-iv",
     "ciphertext": "base64-encoded-aes-gcm-ciphertext"
   }
 }
 ```
+
+`mode` values:
+- `wikipedia_only` (default): skip Ollama and answer from Wikipedia context
+- `ai`: use Ollama with optional Wikipedia enrichment
 
 **Response (200 OK):**
 ```json
@@ -438,7 +445,7 @@ Quick liveness probe.
 
 ## Testing & Validation
 
-**Backend Test Suite (23 passing):**
+**Backend Test Suite (27 passing):**
 ```
 pytest -q
 ```
