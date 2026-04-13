@@ -31,7 +31,7 @@ export function MessageForm({
 }: MessageFormProps) {
   const isRunning = stepStatus === "running";
   const modeHint = mode === "wikipedia_only"
-    ? "Wikipedia only: backend decrypts request, fetches Wikipedia, re-encrypts response, and writes audit log."
+    ? "Wikipedia only: passphrase is optional; leave blank to auto-generate per request. Backend still writes audit log."
     : mode === "ai"
       ? "AI + Wikipedia: backend decrypts request, enriches with Wikipedia, calls Ollama, re-encrypts, and writes audit log."
       : "Client only (experimental): browser calls Wikipedia directly; backend pipeline and audit hash are skipped.";
@@ -48,7 +48,13 @@ export function MessageForm({
       <input
         type="password"
         className="passphrase-input"
-        placeholder={mode === "client_only" ? "Passphrase not required in client-only mode" : "Passphrase (min 8 chars)"}
+        placeholder={
+          mode === "client_only"
+            ? "Passphrase not required in client-only mode"
+            : mode === "wikipedia_only"
+              ? "Passphrase optional (min 8 chars if provided)"
+              : "Passphrase required (min 8 chars)"
+        }
         value={passphrase}
         onChange={(e) => onPassphraseChange(e.target.value)}
         disabled={loading || mode === "client_only"}

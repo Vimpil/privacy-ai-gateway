@@ -123,8 +123,15 @@ export function OraclePage() {
   }, [responseFresh]);
 
   const handleSubmit = async () => {
-    if (mode !== "client_only" && passphrase.trim().length < 8) {
-      setError("Enter a passphrase with at least 8 characters.");
+    const trimmedPassphrase = passphrase.trim();
+
+    if (mode === "ai" && trimmedPassphrase.length < 8) {
+      setError("AI + Wikipedia mode requires a passphrase with at least 8 characters.");
+      return;
+    }
+
+    if (mode === "wikipedia_only" && trimmedPassphrase.length > 0 && trimmedPassphrase.length < 8) {
+      setError("Passphrase must be at least 8 characters, or leave it empty for Wikipedia-only mode.");
       return;
     }
     try {
@@ -157,8 +164,13 @@ export function OraclePage() {
         return;
       }
 
+      const effectivePassphrase =
+        mode === "wikipedia_only" && trimmedPassphrase.length === 0
+          ? `wiki-${crypto.randomUUID()}`
+          : trimmedPassphrase;
+
       setStep(STEPS.encrypt);
-      const cryptoPacket = await encryptText(passphrase, message);
+      const cryptoPacket = await encryptText(effectivePassphrase, message);
 
       setStep(STEPS.send);
       startProgressPolling(requestId);
@@ -166,7 +178,7 @@ export function OraclePage() {
         encrypted: cryptoPacket.encrypted,
         request_id: requestId,
         mode,
-        passphrase,
+        passphrase: effectivePassphrase,
         kdf_salt: cryptoPacket.kdf.salt,
         kdf_iterations: cryptoPacket.kdf.iterations,
       });
@@ -181,7 +193,7 @@ export function OraclePage() {
 
       setStep(STEPS.decrypt);
       const decrypted = await decryptText(
-        passphrase,
+        effectivePassphrase,
         response.encrypted.nonce,
         response.encrypted.ciphertext,
         cryptoPacket.kdf,
