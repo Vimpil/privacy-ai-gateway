@@ -2,7 +2,7 @@
 
 **Privacy-first AI gateway with end-to-end encryption, local inference, and tamper-evident audit logs**
 
-Cipher Oracle is a production-grade privacy-focused AI gateway that enables secure interaction with language models while ensuring client-side encryption, minimal trust assumptions, and verifiable audit integrity.
+Cipher Oracle is a privacy-focused AI gateway that enables secure interaction with language models while ensuring client-side encryption, minimal trust assumptions, and verifiable audit integrity.
 
 Every request and response is encrypted on the client using AES-GCM, processed through a secure FastAPI gateway, optionally enriched with Wikipedia context, and executed via local LLM inference (Ollama) or deterministic public API mode. All interactions are recorded in an immutable SHA-256 hash chain for auditability.
 
@@ -10,10 +10,10 @@ Every request and response is encrypted on the client using AES-GCM, processed t
 
 ## Core Goals
 
-* **Zero-trust prompt handling:** The server never receives plaintext from the network
+* **Zero-trust prompt handling:** Prompts are encrypted before transmission; the server decrypts ephemerally in-memory and never persists plaintext
 * **Local-first AI execution:** Supports fully local inference via Ollama
 * **Verifiable audit trail:** Tamper-evident hash chain for all interactions
-* **Minimal external dependencies:** Wikipedia used as a safe public knowledge layer
+* **Minimal external dependencies:** Wikipedia used for factual grounding; derived topic queries (not raw prompts) are sent to the Wikipedia public API
 * **Security-by-design architecture:** Encryption, validation, and isolation at every layer
 
 ---
